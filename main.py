@@ -219,38 +219,27 @@ async def ping_websocket_clients():
 
 @client.event
 async def on_ready():
-    print(f"✓ Bot logged in as {client.user}")
-    try:
-        await tree.sync()
-        print("✓ Command tree synced successfully.")
-    except Exception as e:
-        logging.error(f"❌ Failed to sync command tree: {e}")
+    logging.info(f'Logged in as {client.user}')
+    await tree.sync()
 
-async def start_websocket_server():
-    async with serve(websocket_handler, "0.0.0.0", 8765):
-        await asyncio.Future()  # run forever
-
-async def run_discord_bot():
+async def start_discord_bot():
     await client.start(os.getenv("DISCORD_TOKEN"))
 
-@app.on_event("startup")
-async def startup_event():
-    asyncio.create_task(start_websocket_server())
-    asyncio.create_task(ping_websocket_clients())
-    asyncio.create_task(run_discord_bot())
+async def websocket_server():
+    async with serve(websocket_handler, "0.0.0.0", 6789):  # Change port as needed
+        await ping_websocket_clients()
 
-@app.on_event("shutdown")
-async def shutdown_event():
-    await client.close()  # Close Discord client on shutdown
-
-# Define lifespan context manager
-@app.lifespan
+# Use FastAPI lifespan for startup and shutdown
 async def lifespan(app: FastAPI):
     # Startup
-    await startup_event()
-    yield  # This yield is where the app runs
+    task_discord_bot = asyncio.create_task(start_discord_bot())
+    task_websocket_server = asyncio.create_task(websocket_server())
+    yield  # Run the app
     # Shutdown
-    await shutdown_event()
+    task_discord_bot.cancel()
+    task_websocket_server.cancel()
+
+app = FastAPI(lifespan=lifespan)  # Attach the lifespan function here
 
 if __name__ == "__main__":
     import uvicorn
