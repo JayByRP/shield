@@ -34,7 +34,8 @@ app.add_middleware(
 )
 
 # Mount the static files directory
-app.mount("/public", StaticFiles(directory="public"), name="public")
+app.mount("/", StaticFiles(directory="public", html=True), name="public")
+
 
 # Initialize Discord bot
 intents = Intents.default()
