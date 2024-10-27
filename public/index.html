@@ -25,8 +25,8 @@
 
                         return `
                             <div class="grid-item" 
-                                data-gender="${character.gender || 'unknown'}"
-                                data-sexuality="${character.sexuality || 'unknown'}">
+                                data-gender="${character.gender}"
+                                data-sexuality="${character.sexuality}">
                                 <div class="name">
                                     <div class="firstname">${firstName.toUpperCase()}</div>
                                     <div class="surname">${surname.toUpperCase()}</div>
@@ -38,7 +38,7 @@
                                     `<img src="${character.image}" alt="${character.name}">`
                                 }
                                 <div class="info">
-                                    ${character.gender || ''} ${character.sexuality || ''}
+                                    ${character.gender} ${character.sexuality}
                                 </div>
                             </div>
                         `;
