@@ -201,7 +201,7 @@ async def show_character(interaction: Interaction, name: str):
 @tree.command(name="character_list", description="Shows the list of all characters")
 async def list_all_characters(interaction):
     try:
-        website_url = "https://shield-hzo0.onrender.com"  # Updated path
+        website_url = "https://shield-hzo0.onrender.com/"
         await interaction.response.send_message(f"📚 View the complete character list [here]({website_url})")
     except Exception as e:
         await interaction.response.send_message("❌ An error occurred while processing your request.", ephemeral=True)
@@ -221,9 +221,17 @@ async def serve_index(request: Request):
 
 @app.head("/")
 async def head_root(request: Request):
-    headers = {"Content-Type": "text/html"}
-    return HTMLResponse(headers=headers)
-
+    try:
+        # Get the length of the index.html file
+        async with aiofiles.open("public/index.html", mode='r') as f:
+            content = await f.read()
+        headers = {
+            "Content-Type": "text/html",
+            "Content-Length": str(len(content)),
+        }
+        return HTMLResponse(headers=headers)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Index file not found")
 # API endpoints
 @app.get("/api/characters")
 async def get_characters():
