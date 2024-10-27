@@ -26,11 +26,12 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory="public"), name="static")
 
 logging.basicConfig(level=logging.INFO)
+
 # Initialize Discord bot
 intents = Intents.default()
-intents.message_content = True  # Make sure to enable this intent
-client = Client(intents=intents)  # Create the client instance
-tree = app_commands.CommandTree(client)  # Initialize command tree
+intents.message_content = True
+client = Client(intents=intents)
+tree = app_commands.CommandTree(client)
 
 @app.get("/")
 def read_root():
@@ -38,9 +39,10 @@ def read_root():
         "message": "🚀 The Librarian is up and running! 🎉"
     }
 
-@Client.event
+@client.event
 async def on_ready():
-    logging.info(f"✓ Bot logged in as {client.user}")
+    print(f"✓ Bot logged in as {client.user}")
+    await tree.sync()
 
 # Initialize Discord bot
 intents = Intents.default()
