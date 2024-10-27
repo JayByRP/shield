@@ -25,8 +25,6 @@
 
                         return `
                             <div class="grid-item" 
-                                data-gender="${character.gender}"
-                                data-sexuality="${character.sexuality}">
                                 <div class="name">
                                     <div class="firstname">${firstName.toUpperCase()}</div>
                                     <div class="surname">${surname.toUpperCase()}</div>
@@ -37,9 +35,6 @@
                                     </a>` : 
                                     `<img src="${character.image}" alt="${character.name}">`
                                 }
-                                <div class="info">
-                                    ${character.gender} ${character.sexuality}
-                                </div>
                             </div>
                         `;
                     }).join("");
@@ -316,38 +311,46 @@
         }
     </style>
 </head>
-
 <body>
     <div id="top">
-        <div class="toptitle">SHIELD DATABASE</div>
+        <span class="toptitle">SHIELD DATABASE</span>
+        <h1>Character Collection</h1>
     </div>
-
     <div class="sidebar">
         <div class="filters">
+            <h3>Filters</h3>
             <div class="button-group" data-filter-group="gender">
-                <h1>GENDER</h1>
-                <button class="button is-checked" data-filter="">ALL</button>
-                <button class="button" data-filter='[data-gender="male"]'>MALE</button>
-                <button class="button" data-filter='[data-gender="female"]'>FEMALE</button>
-                <button class="button" data-filter='[data-gender="non-binary"]'>NON-BINARY</button>
-                <button class="button" data-filter='[data-gender="other"]'>OTHER</button>
+                <button class="button is-checked" data-filter="*">Show All</button>
+                <button class="button" data-filter="[data-gender='male']">Male</button>
+                <button class="button" data-filter="[data-gender='female']">Female</button>
+                <button class="button" data-filter="[data-gender='non-binary']">Non-binary</button>
+                <button class="button" data-filter="[data-gender='other']">Other</button>
             </div>
-
             <div class="button-group" data-filter-group="sexuality">
-                <h1>SEXUALITY</h1>
-                <button class="button is-checked" data-filter="">ALL</button>
-                <button class="button" data-filter='[data-sexuality="heterosexual"]'>HETEROSEXUAL</button>
-                <button class="button" data-filter='[data-sexuality="homosexual"]'>HOMOSEXUAL</button>
-                <button class="button" data-filter='[data-sexuality="bisexual"]'>BISEXUAL</button>
-                <button class="button" data-filter='[data-sexuality="pansexual"]'>PANSEXUAL</button>
-                <button class="button" data-filter='[data-sexuality="asexual"]'>ASEXUAL</button>
-                <button class="button" data-filter='[data-sexuality="other"]'>OTHER</button>
+                <button class="button is-checked" data-filter="*">Show All</button>
+                <button class="button" data-filter="[data-sexuality='heterosexual']">Heterosexual</button>
+                <button class="button" data-filter="[data-sexuality='homosexual']">Homosexual</button>
+                <button class="button" data-filter="[data-sexuality='bisexual']">Bisexual</button>
+                <button class="button" data-filter="[data-sexuality='pansexual']">Pansexual</button>
+                <button class="button" data-filter="[data-sexuality='asexual']">Asexual</button>
+                <button class="button" data-filter="[data-sexuality='other']">Other</button>
+            </div>
+            <div class="button-group" data-filter-group="program">
+                <button class="button is-checked" data-filter="*">Show All</button>
+                <button class="button" data-filter="[data-program='operations']">Operations</button>
+                <button class="button" data-filter="[data-program='intelligence']">Intelligence</button>
+                <button class="button" data-filter="[data-program='technology']">Technology</button>
+                <button class="button" data-filter="[data-program='science']">Science</button>
+            </div>
+            <div class="button-group" data-filter-group="year">
+                <button class="button is-checked" data-filter="*">Show All</button>
+                <button class="button" data-filter="[data-year='1st Year']">1st Year</button>
+                <button class="button" data-filter="[data-year='2nd Year']">2nd Year</button>
+                <button class="button" data-filter="[data-year='3rd Year']">3rd Year</button>
+                <button class="button" data-filter="[data-year='4th Year']">4th Year</button>
             </div>
         </div>
     </div>
-
-    <div class="grid">
-        <!-- Characters will be dynamically inserted here -->
-    </div>
+    <div class="grid"></div>
 </body>
 </html>

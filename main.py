@@ -338,16 +338,12 @@ def upgrade_database():
         with db.begin():
             db.execute(text("""
                 ALTER TABLE dbcharacter 
-                ADD COLUMN program VARCHAR(255) 
-                ON CONFLICT DO NOTHING;
+                ADD COLUMN program VARCHAR(255);
             """))
-
             db.execute(text("""
                 ALTER TABLE dbcharacter 
-                ADD COLUMN year VARCHAR(20) 
-                ON CONFLICT DO NOTHING;
+                ADD COLUMN year VARCHAR(255);
             """))
-
         logger.info("Database upgraded successfully: program and year columns added.")
     except Exception as e:
         logger.error(f"Database upgrade failed: {e}")
