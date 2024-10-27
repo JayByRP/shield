@@ -157,7 +157,7 @@ async def show_character(interaction, name: str):
 
             embed = Embed(
                 title=character.name.upper(),
-                description=f"[Character Sheet]({character.bio})" if character.bio.startswith('http') else character.bio,
+                description=f"[Character Sheet]({character.bio})" if character.bio.startswith('http') else "N/A",
                 color=Color.from_str("#fffdd0")
             )
             embed.set_image(url=character.image)
@@ -247,3 +247,4 @@ if __name__ == "__main__":
 
     # Run the FastAPI app in the event loop
     uvicorn.run(app, host="0.0.0.0", port=8000)
+    client.run(os.getenv("DISCORD_TOKEN"))
