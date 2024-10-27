@@ -34,7 +34,7 @@ app.add_middleware(
 )
 
 # Mount the static files directory
-app.mount("/", StaticFiles(directory="public", html=True), name="public")
+app.mount("/public", StaticFiles(directory="public"), name="public")
 
 
 # Initialize Discord bot
@@ -207,18 +207,15 @@ async def list_all_characters(interaction):
         logging.error(f"Error in list_all_characters: {e}")
 
 
-# Serve index.html for root and character paths
-
 @app.get("/", response_class=HTMLResponse)
-@app.get("/character/{name}", response_class=HTMLResponse)
-async def serve_index():
+async def serve_index(request: Request):
     try:
         return FileResponse("public/index.html")
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Index file not found")
 
 @app.head("/")
-async def head_root():
+async def head_root(request: Request):
     return FileResponse("public/index.html")
 
 # API endpoints
