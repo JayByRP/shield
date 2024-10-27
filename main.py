@@ -6,7 +6,6 @@ from discord import app_commands, Intents, Client, Embed, Color
 from pydantic import BaseModel, HttpUrl
 import uvicorn
 import asyncio
-import logging
 import re
 from websockets import serve
 import json
@@ -24,25 +23,6 @@ ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
 # Initialize FastAPI
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="public"), name="static")
-
-logging.basicConfig(level=logging.INFO)
-
-# Initialize Discord bot
-intents = Intents.default()
-intents.message_content = True
-client = Client(intents=intents)
-tree = app_commands.CommandTree(client)
-
-@app.get("/")
-def read_root():
-    return {
-        "message": "🚀 The Librarian is up and running! 🎉"
-    }
-
-@client.event
-async def on_ready():
-    print(f"✓ Bot logged in as {client.user}")
-    await tree.sync()
 
 # Initialize Discord bot
 intents = Intents.default()
@@ -188,6 +168,10 @@ async def list_all_characters(interaction):
         await interaction.response.send_message("❌ An error occurred while processing your request.", ephemeral=True)
         print(f"Error in list_all_characters: {e}")
 
+@app.get("/")
+async def read_root():
+    return FileResponse("public/index.html")
+
 @app.get("/api/characters")
 async def get_characters():
     try:
@@ -212,17 +196,18 @@ async def websocket_handler(websocket):
 @client.event
 async def on_ready():
     print(f"✓ Bot logged in as {client.user}")
-    await tree.sync()
+    try:
+        await tree.sync()
+        print("✓ Command tree synced successfully.")
+    except Exception as e:
+        print(f"❌ Failed to sync command tree: {e}")
 
 async def start_websocket_server():
     async with serve(websocket_handler, "0.0.0.0", 8765):
         await asyncio.Future()  # run forever
 
 async def start_discord_bot():
-    try:
-        await client.start(os.getenv('DISCORD_TOKEN'))
-    except Exception as e:
-        print(f"Error starting Discord bot: {e}")
+    await client.start(os.getenv('DISCORD_TOKEN'))
 
 async def start_fastapi():
     config = uvicorn.Config(
