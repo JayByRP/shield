@@ -14,6 +14,7 @@ from sqlalchemy.exc import IntegrityError
 from database import Base, engine, SessionLocal, test_db_connection
 from models import DBCharacter
 from dotenv import load_dotenv
+import logging
 
 # Load environment variables
 load_dotenv()
@@ -223,12 +224,15 @@ async def start_websocket_server():
     async with serve(websocket_handler, "0.0.0.0", 8765):
         await asyncio.Future()  # run forever
 
+logging.basicConfig(level=logging.INFO)
+
 async def start_discord_bot():
     try:
-        print("🔗 Connecting to Discord...")
+        logging.info("Connecting to Discord...")
         await client.start(os.getenv('DISCORD_TOKEN'))
+        logging.info("Bot connected successfully.")
     except Exception as e:
-        print(f"❌ Discord bot failed to connect: {e}")
+        logging.error(f"Failed to connect to Discord: {e}")
 
 async def start_fastapi():
     config = uvicorn.Config(
