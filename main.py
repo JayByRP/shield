@@ -244,6 +244,12 @@ async def main():
         # Wait for all tasks to be cancelled
         await asyncio.gather(*tasks, return_exceptions=True)
 
+@app.get("/")
+def read_root():
+    return {
+        "message": "🚀 The Librarian is up and running! 🎉"
+    }
+
 if __name__ == "__main__":
     try:
         asyncio.run(main())
