@@ -26,5 +26,5 @@ class DBCharacter(Base):
     image = Column(String, nullable=False)
     bio = Column(Text, nullable=False)
     password = Column(String, nullable=False)
-    gender = Column(Enum(GenderEnum), nullable=False)
-    sexuality = Column(Enum(SexualityEnum), nullable=False)
+    gender = Column(Enum(GenderEnum), nullable=True)
+    sexuality = Column(Enum(SexualityEnum), nullable=True)
