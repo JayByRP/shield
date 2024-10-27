@@ -22,21 +22,9 @@ import re
 load_dotenv()
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
 
-# Initialize FastAPI
-app = FastAPI()
-
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Mount the static files directory
-app.mount("/public", StaticFiles(directory="public"), name="public")
-
+# Initialize logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Initialize Discord bot
 intents = Intents.default()
@@ -49,10 +37,6 @@ Base.metadata.create_all(bind=engine)
 
 # Global websocket connections
 websocket_connections = set()
-
-# Set up logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 # Pydantic model for request validation
 class Character(BaseModel):
@@ -207,10 +191,35 @@ async def list_all_characters(interaction):
         await interaction.response.send_message("❌ An error occurred while processing your request.", ephemeral=True)
         logging.error(f"Error in list_all_characters: {e}")
 
+# FastAPI lifespan
+async def lifespan(app: FastAPI):
+    # Startup
+    task_discord_bot = asyncio.create_task(start_discord_bot())
+    task_websocket_server = asyncio.create_task(websocket_server())
+    yield
+    # Shutdown
+    task_discord_bot.cancel()
+    task_websocket_server.cancel()
 
-@app.get("/", response_class=HTMLResponse)
-async def read_index():
-    return HTMLResponse(status_code=302, headers={"Location": "/public/index.html"})
+# Initialize FastAPI with lifespan
+app = FastAPI(lifespan=lifespan)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Mount static files AFTER initializing the app
+app.mount("/public", StaticFiles(directory="public"), name="public")
+
+# Root route
+@app.get("/")
+async def root():
+    return FileResponse("public/index.html")
 
 # API endpoints 
 @app.get("/api/characters")
@@ -233,7 +242,6 @@ async def not_found_exception_handler(request: Request, exc: HTTPException):
         content="<h1>404 - Page Not Found</h1><p>The requested resource was not found on this server.</p>"
     )
 
-# Add this to your routes
 @app.get("/api/health")
 async def health_check():
     return {"status": "healthy"}
@@ -264,23 +272,10 @@ async def on_ready():
 async def start_discord_bot():
     await client.start(os.getenv("DISCORD_TOKEN"))
 
-
 async def websocket_server():
     async with serve(websocket_handler, "0.0.0.0", 6789):  # Change port as needed
         await ping_websocket_clients()
 
-# Use FastAPI lifespan for startup and shutdown
-async def lifespan(app: FastAPI):
-    # Startup
-    task_discord_bot = asyncio.create_task(start_discord_bot())
-    task_websocket_server = asyncio.create_task(websocket_server())
-    yield  # Run the app
-    # Shutdown
-    task_discord_bot.cancel()
-    task_websocket_server.cancel()
-
-app = FastAPI(lifespan=lifespan)  # Attach the lifespan function here
-
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)  # Adjust the port as needed
+    uvicorn.run(app, host="0.0.0.0", port=8000)
