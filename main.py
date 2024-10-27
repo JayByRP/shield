@@ -1,20 +1,20 @@
+import os
+import asyncio
+import logging
+import uvicorn
 from typing import Optional
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from discord import app_commands, Intents, Client, Embed, Color
 from pydantic import BaseModel, HttpUrl
-import uvicorn
-import asyncio
-import re
 from websockets import serve, ConnectionClosed
-import json
-import os
 from sqlalchemy.exc import IntegrityError
-from database import Base, engine, SessionLocal, test_db_connection
+from database import Base, engine, SessionLocal
 from models import DBCharacter
 from dotenv import load_dotenv
-import logging
+import json
+import re
 
 # Load environment variables
 load_dotenv()
@@ -44,6 +44,7 @@ class Character(BaseModel):
     bio: str
     password: str
 
+# Helper functions
 def verify_character(name: str, password: str) -> bool:
     db = SessionLocal()
     try:
@@ -64,6 +65,7 @@ async def broadcast_message(message: dict):
     websocket_message = json.dumps(message)
     await asyncio.gather(*[ws.send(websocket_message) for ws in websocket_connections])
 
+# Discord bot commands
 @tree.command(name="create_character", description="Creates a new character profile")
 async def create_character(interaction, name: str, faceclaim: str, image: str, bio: str, password: str):
     try:
@@ -191,8 +193,6 @@ async def get_characters():
 async def websocket_handler(websocket):
     try:
         websocket_connections.add(websocket)
-        websocket.is_alive = True  # Track if the connection is alive
-
         async for _ in websocket:  # Keep the connection open
             pass  # Placeholder for receiving messages if needed
     except ConnectionClosed:
@@ -204,11 +204,10 @@ async def ping_websocket_clients():
     while True:
         if websocket_connections:
             for ws in list(websocket_connections):
-                if not ws.is_alive:  # Check if the connection is still alive
-                    await ws.close()
-                else:
-                    ws.is_alive = False
+                try:
                     await ws.ping()  # Send a ping to the client
+                except Exception:
+                    websocket_connections.remove(ws)  # Remove if the connection fails
         await asyncio.sleep(30)  # Wait 30 seconds before the next ping
 
 @client.event
@@ -224,18 +223,21 @@ async def start_websocket_server():
     async with serve(websocket_handler, "0.0.0.0", 8765):
         await asyncio.Future()  # run forever
 
-logging.basicConfig(level=logging.INFO)
-
-async def start_discord_bot():
-    try:
-        logging.info("Connecting to Discord...")
-        await client.start(os.getenv("DISCORD_TOKEN"))
-    except Exception as e:
-        logging.error(f"Error starting Discord bot: {e}")
+def run_discord_bot():
+    asyncio.run(client.start(os.getenv("DISCORD_TOKEN")))
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+
     loop = asyncio.get_event_loop()
+    
+    # Start FastAPI app and websocket server
     loop.create_task(start_websocket_server())
-    loop.create_task(start_discord_bot())
-    loop.create_task(ping_websocket_clients())
-    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", 8000)))
+    
+    # Start Discord bot in a separate thread
+    import threading
+    discord_thread = threading.Thread(target=run_discord_bot)
+    discord_thread.start()
+    
+    # Run the FastAPI app in the event loop
+    uvicorn.run(app, host="0.0.0.0", port=8000)
