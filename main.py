@@ -209,29 +209,9 @@ async def list_all_characters(interaction):
 
 
 @app.get("/", response_class=HTMLResponse)
-async def serve_index(request: Request):
-    try:
-        logger.info("Serving index.html")
-        async with aiofiles.open("public/index.html", mode='r') as f:
-            content = await f.read()
-        return HTMLResponse(content=content)
-    except FileNotFoundError:
-        logger.error("Index file not found")
-        raise HTTPException(status_code=404, detail="Index file not found")
+async def read_index():
+    return FileResponse("public/index.html")
 
-@app.head("/")
-async def head_root(request: Request):
-    try:
-        # Get the length of the index.html file
-        async with aiofiles.open("public/index.html", mode='r') as f:
-            content = await f.read()
-        headers = {
-            "Content-Type": "text/html",
-            "Content-Length": str(len(content)),
-        }
-        return HTMLResponse(headers=headers)
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="Index file not found")
 # API endpoints 
 @app.get("/api/characters")
 async def get_characters():
