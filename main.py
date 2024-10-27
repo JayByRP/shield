@@ -34,9 +34,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount the static files directory
-app.mount("/public", StaticFiles(directory="public"), name="public")
-
 
 # Initialize Discord bot
 intents = Intents.default()
@@ -210,7 +207,33 @@ async def list_all_characters(interaction):
 
 @app.get("/", response_class=HTMLResponse)
 async def read_index():
-    return FileResponse("public/index.html")
+    try:
+        return FileResponse("public/index.html")
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Index file not found")
+
+# Endpoint for serving static files
+@app.get("/public/{file_path:path}")
+async def serve_static(file_path: str):
+    file_location = os.path.join("public", file_path)
+    if os.path.exists(file_location):
+        return FileResponse(file_location)
+    raise HTTPException(status_code=404, detail="File not found")
+
+# Optionally handle HEAD requests for the root
+@app.head("/")
+async def head_root():
+    try:
+        # Get the length of the index.html file
+        async with aiofiles.open("public/index.html", mode='r') as f:
+            content = await f.read()
+        headers = {
+            "Content-Type": "text/html",
+            "Content-Length": str(len(content)),
+        }
+        return HTMLResponse(headers=headers)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Index file not found")
 
 # API endpoints 
 @app.get("/api/characters")
