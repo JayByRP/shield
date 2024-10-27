@@ -1,8 +1,11 @@
 <!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SHIELD DATABASE</title>
+    <!-- External Resources -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css" />
     <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700|Open+Sans:400,400italic,700,700italic,300italic,300|Inconsolata" rel="stylesheet" type="text/css" />
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
@@ -26,9 +29,14 @@
                                     <div class="firstname">${firstName.toUpperCase()}</div>
                                     <div class="surname">${surname.toUpperCase()}</div>
                                 </div>
-                                <img src="${character.image}" alt="${character.name}">
+                                ${character.bio ? 
+                                    `<a href="${character.bio}" target="_blank" class="image-link">
+                                        <img src="${character.image}" alt="${character.name}">
+                                    </a>` : 
+                                    `<img src="${character.image}" alt="${character.name}">`
+                                }
                                 <div class="info">
-                                    ${character.bio ? `<a href="${character.bio}" target="_blank">${character.faceclaim}</a>` : character.faceclaim}
+                                    ${character.faceclaim}
                                 </div>
                             </div>
                         `;
@@ -191,6 +199,11 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.3);
         }
 
+        .image-link {
+            cursor: pointer;
+            display: block;
+        }
+
         .grid-item img {
             width: 150px;
             height: 150px;
@@ -230,16 +243,6 @@
             font-size: 10px;
             font-family: "Open Sans";
             line-height: 1.4;
-        }
-
-        .info a {
-            color: #ccc;
-            text-decoration: none;
-            transition: color 0.3s ease;
-        }
-
-        .info a:hover {
-            color: #fff;
         }
 
         .sidebar {

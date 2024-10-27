@@ -1,6 +1,5 @@
 import os
 import asyncio
-import aiofiles
 import logging
 from typing import Optional
 from fastapi import FastAPI, HTTPException, Request
@@ -10,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from discord import app_commands, Intents, Client, Embed, Color, Interaction
 from discord.app_commands import Choice
 from pydantic import BaseModel, HttpUrl
-from websockets import serve, ConnectionClosed
+from websockets import serve
 from sqlalchemy.exc import IntegrityError
 from database import Base, engine, SessionLocal
 from models import DBCharacter
@@ -191,18 +190,8 @@ async def list_all_characters(interaction):
         await interaction.response.send_message("❌ An error occurred while processing your request.", ephemeral=True)
         logging.error(f"Error in list_all_characters: {e}")
 
-# FastAPI lifespan
-async def lifespan(app: FastAPI):
-    # Startup
-    task_discord_bot = asyncio.create_task(start_discord_bot())
-    task_websocket_server = asyncio.create_task(websocket_server())
-    yield
-    # Shutdown
-    task_discord_bot.cancel()
-    task_websocket_server.cancel()
-
-# Initialize FastAPI with lifespan
-app = FastAPI(lifespan=lifespan)
+# FastAPI Setup
+app = FastAPI()
 
 # Add CORS middleware
 app.add_middleware(
@@ -213,15 +202,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount static files AFTER initializing the app
-app.mount("/public", StaticFiles(directory="public"), name="public")
+# Mount static files
+app.mount("/static", StaticFiles(directory="public"), name="static")
 
-# Root route
+# API endpoints
 @app.get("/")
 async def root():
     return FileResponse("public/index.html")
 
-# API endpoints 
 @app.get("/api/characters")
 async def get_characters():
     try:
@@ -233,24 +221,17 @@ async def get_characters():
             db.close()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
-# Handle 404 errors
-@app.exception_handler(404)
-async def not_found_exception_handler(request: Request, exc: HTTPException):
-    return HTMLResponse(
-        status_code=404,
-        content="<h1>404 - Page Not Found</h1><p>The requested resource was not found on this server.</p>"
-    )
 
 @app.get("/api/health")
 async def health_check():
     return {"status": "healthy"}
 
+# WebSocket handling
 async def websocket_handler(websocket):
     try:
         websocket_connections.add(websocket)
-        async for _ in websocket:  # Keep the connection open
-            pass  # Placeholder for receiving messages if needed
+        async for _ in websocket:
+            pass
     finally:
         websocket_connections.remove(websocket)
 
@@ -259,10 +240,10 @@ async def ping_websocket_clients():
         if websocket_connections:
             for ws in list(websocket_connections):
                 try:
-                    await ws.ping()  # Send a ping to the client
+                    await ws.ping()
                 except Exception:
-                    websocket_connections.remove(ws)  # Remove if the connection fails
-        await asyncio.sleep(30)  # Wait 30 seconds before the next ping
+                    websocket_connections.remove(ws)
+        await asyncio.sleep(30)
 
 @client.event
 async def on_ready():
@@ -273,9 +254,20 @@ async def start_discord_bot():
     await client.start(os.getenv("DISCORD_TOKEN"))
 
 async def websocket_server():
-    async with serve(websocket_handler, "0.0.0.0", 6789):  # Change port as needed
+    async with serve(websocket_handler, "0.0.0.0", 6789):
         await ping_websocket_clients()
+
+# Lifespan
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(start_discord_bot())
+    asyncio.create_task(websocket_server())
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    if client.is_ready():
+        await client.close()
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", "8000")))
