@@ -12,10 +12,11 @@ from pydantic import BaseModel, HttpUrl
 from websockets import serve
 from sqlalchemy.exc import IntegrityError
 from database import Base, engine, SessionLocal
-from models import DBCharacter
+from models import DBCharacter, GenderEnum, SexualityEnum
 from dotenv import load_dotenv
 import json
 import re
+import enum
 
 # Load environment variables
 load_dotenv()
@@ -66,9 +67,23 @@ async def broadcast_message(message: dict):
     websocket_message = json.dumps(message)
     await asyncio.gather(*[ws.send(websocket_message) for ws in websocket_connections])
 
-# Discord bot commands
+# Autocomplete functions
+async def character_name_autocomplete(interaction: Interaction, current: str):
+    db = SessionLocal()
+    try:
+        characters = db.query(DBCharacter).filter(DBCharacter.name.ilike(f"{current}%")).all()
+        return [Choice(name=character.name, value=character.name) for character in characters[:5]]
+    finally:
+        db.close()
+async def gender_autocomplete(interaction: Interaction, current: str):
+    return [Choice(name=gender.value, value=gender.value) for gender in GenderEnum if gender.value.lower().startswith(current.lower())]
+
+async def sexuality_autocomplete(interaction: Interaction, current: str):
+    return [Choice(name=sexuality.value, value=sexuality.value) for sexuality in SexualityEnum if sexuality.value.lower().startswith(current.lower())]
+
 @tree.command(name="create_character", description="Creates a new character profile")
-async def create_character(interaction, name: str, faceclaim: str, image: str, bio: str, password: str):
+@app_commands.autocomplete(gender=gender_autocomplete, sexuality=sexuality_autocomplete)
+async def create_character(interaction, name: str, faceclaim: str, image: str, bio: str, password: str, gender: str, sexuality: str):
     try:
         if not is_valid_image_url(image):
             await interaction.response.send_message("❌ Invalid image URL. Please provide an HTTPS URL ending with .jpg, .jpeg, or .png.", ephemeral=True)
@@ -76,11 +91,27 @@ async def create_character(interaction, name: str, faceclaim: str, image: str, b
 
         db = SessionLocal()
         try:
-            character = DBCharacter(name=name, faceclaim=faceclaim, image=image, bio=bio, password=password)
+            character = DBCharacter(
+                name=name,
+                faceclaim=faceclaim,
+                image=image,
+                bio=bio,
+                password=password,
+                gender=GenderEnum(gender),
+                sexuality=SexualityEnum(sexuality)
+            )
             db.add(character)
             db.commit()
             await interaction.response.send_message(f"✓ Character '{name}' has been created successfully!")
-            await broadcast_message({'action': 'create', 'name': name, 'faceclaim': faceclaim, 'image': image, 'bio': bio})
+            await broadcast_message({
+                'action': 'create',
+                'name': name,
+                'faceclaim': faceclaim,
+                'image': image,
+                'bio': bio,
+                'gender': gender,
+                'sexuality': sexuality
+            })
         except IntegrityError:
             await interaction.response.send_message(f"❌ A character named '{name}' already exists!", ephemeral=True)
         finally:
@@ -89,18 +120,9 @@ async def create_character(interaction, name: str, faceclaim: str, image: str, b
         await interaction.response.send_message("❌ An error occurred while processing your request.", ephemeral=True)
         logging.error(f"Error in create_character: {e}")
 
-# Autocomplete function for character names
-async def character_name_autocomplete(interaction: Interaction, current: str):
-    db = SessionLocal()
-    try:
-        characters = db.query(DBCharacter).filter(DBCharacter.name.ilike(f"{current}%")).all()
-        return [Choice(name=character.name, value=character.name) for character in characters[:5]]
-    finally:
-        db.close()
-
 @tree.command(name="edit_character", description="Edits an existing character")
-@app_commands.autocomplete(name=character_name_autocomplete)
-async def edit_character(interaction: Interaction, name: str, password: str, faceclaim: Optional[str] = None, image: Optional[str] = None, bio: Optional[str] = None):
+@app_commands.autocomplete(name=character_name_autocomplete, gender=gender_autocomplete, sexuality=sexuality_autocomplete)
+async def edit_character(interaction: Interaction, name: str, password: str, faceclaim: Optional[str] = None, image: Optional[str] = None, bio: Optional[str] = None, gender: Optional[str] = None, sexuality: Optional[str] = None):
     try:
         if not verify_character(name, password):
             await interaction.response.send_message("❌ Invalid character name or password.", ephemeral=True)
@@ -123,6 +145,10 @@ async def edit_character(interaction: Interaction, name: str, password: str, fac
                 character.image = image
             if bio:
                 character.bio = bio
+            if gender:
+                character.gender = GenderEnum(gender)
+            if sexuality:
+                character.sexuality = SexualityEnum(sexuality)
             db.commit()
             await interaction.response.send_message(f"✓ Character '{name}' has been updated!")
             await broadcast_message({'action': 'edit', 'name': name})

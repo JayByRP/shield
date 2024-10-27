@@ -1,5 +1,22 @@
-from sqlalchemy import Column, String, Text
+from sqlalchemy import Column, String, Text, Enum
 from database import Base
+import enum
+
+# Define Gender Enum
+class GenderEnum(enum.Enum):
+    male = "male"
+    female = "female"
+    non_binary = "non-binary"
+    other = "other"
+
+# Define Sexuality Enum
+class SexualityEnum(enum.Enum):
+    heterosexual = "heterosexual"
+    homosexual = "homosexual"
+    bisexual = "bisexual"
+    pansexual = "pansexual"
+    asexual = "asexual"
+    other = "other"
 
 class DBCharacter(Base):
     __tablename__ = "characters"
@@ -9,3 +26,5 @@ class DBCharacter(Base):
     image = Column(String, nullable=False)
     bio = Column(Text, nullable=False)
     password = Column(String, nullable=False)
+    gender = Column(Enum(GenderEnum), nullable=False)
+    sexuality = Column(Enum(SexualityEnum), nullable=False)
