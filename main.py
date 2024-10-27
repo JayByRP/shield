@@ -84,7 +84,7 @@ async def create_character(interaction, name: str, faceclaim: str, image: str, b
             db.close()
     except Exception as e:
         await interaction.response.send_message("❌ An error occurred while processing your request.", ephemeral=True)
-        print(f"Error in create_character: {e}")
+        logging.error(f"Error in create_character: {e}")
 
 @tree.command(name="edit_character", description="Edits an existing character")
 async def edit_character(interaction, name: str, password: str, faceclaim: Optional[str] = None, image: Optional[str] = None, bio: Optional[str] = None):
@@ -113,7 +113,7 @@ async def edit_character(interaction, name: str, password: str, faceclaim: Optio
             db.close()
     except Exception as e:
         await interaction.response.send_message("❌ An error occurred while processing your request.", ephemeral=True)
-        print(f"Error in edit_character: {e}")
+        logging.error(f"Error in edit_character: {e}")
 
 @tree.command(name="delete_character", description="Deletes a character")
 async def delete_character(interaction, name: str, password: str):
@@ -133,7 +133,7 @@ async def delete_character(interaction, name: str, password: str):
             db.close()
     except Exception as e:
         await interaction.response.send_message("❌ An error occurred while processing your request.", ephemeral=True)
-        print(f"Error in delete_character: {e}")
+        logging.error(f"Error in delete_character: {e}")
 
 @tree.command(name="show_character", description="Shows a character's profile")
 async def show_character(interaction, name: str):
@@ -157,7 +157,7 @@ async def show_character(interaction, name: str):
             db.close()
     except Exception as e:
         await interaction.response.send_message("❌ An error occurred while processing your request.", ephemeral=True)
-        print(f"Error in show_character: {e}")
+        logging.error(f"Error in show_character: {e}")
 
 @tree.command(name="list_all_characters", description="Shows the list of all characters")
 async def list_all_characters(interaction):
@@ -166,7 +166,7 @@ async def list_all_characters(interaction):
         await interaction.response.send_message(f"📚 View the complete character list [here]({website_url})")
     except Exception as e:
         await interaction.response.send_message("❌ An error occurred while processing your request.", ephemeral=True)
-        print(f"Error in list_all_characters: {e}")
+        logging.error(f"Error in list_all_characters: {e}")
 
 @app.get("/")
 async def read_root(request: Request):
@@ -218,7 +218,7 @@ async def on_ready():
         await tree.sync()
         print("✓ Command tree synced successfully.")
     except Exception as e:
-        print(f"❌ Failed to sync command tree: {e}")
+        logging.error(f"❌ Failed to sync command tree: {e}")
 
 async def start_websocket_server():
     async with serve(websocket_handler, "0.0.0.0", 8765):
@@ -229,22 +229,13 @@ logging.basicConfig(level=logging.INFO)
 async def start_discord_bot():
     try:
         logging.info("Connecting to Discord...")
-        await client.start(os.getenv('DISCORD_TOKEN'))  # Make sure the token is valid
+        await client.start(os.getenv("DISCORD_TOKEN"))
     except Exception as e:
-        logging.error(f"Failed to connect to Discord: {e}")
-
-async def start_fastapi():
-    config = uvicorn.Config(app, host="0.0.0.0", port=8000, log_level="info")
-    server = uvicorn.Server(config)
-    await server.serve()
-
-async def main():
-    await asyncio.gather(
-        start_websocket_server(),
-        start_discord_bot(),
-        start_fastapi(),
-        ping_websocket_clients()
-    )
+        logging.error(f"Error starting Discord bot: {e}")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    loop = asyncio.get_event_loop()
+    loop.create_task(start_websocket_server())
+    loop.create_task(start_discord_bot())
+    loop.create_task(ping_websocket_clients())
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", 8000)))
