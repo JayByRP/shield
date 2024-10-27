@@ -13,7 +13,7 @@ from websockets import serve
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from database import Base, engine, SessionLocal
-from models import DBCharacter, GenderEnum, SexualityEnum
+from models import DBCharacter, GenderEnum, SexualityEnum, YearEnum, ProgramEnum
 from dotenv import load_dotenv
 import json
 import re
@@ -82,9 +82,26 @@ async def gender_autocomplete(interaction: Interaction, current: str):
 async def sexuality_autocomplete(interaction: Interaction, current: str):
     return [Choice(name=sexuality.value, value=sexuality.value) for sexuality in SexualityEnum if sexuality.value.lower().startswith(current.lower())]
 
+async def program_autocomplete(interaction: Interaction, current: str):
+    return [Choice(name=program.value, value=program.value) for program in ProgramEnum if program.value.lower().startswith(current.lower())]
+
+async def year_autocomplete(interaction: Interaction, current: str):
+    return [Choice(name=year.value, value=year.value) for year in YearEnum if year.value.lower().startswith(current.lower())]
+
 @tree.command(name="create_character", description="Creates a new character profile")
-@app_commands.autocomplete(gender=gender_autocomplete, sexuality=sexuality_autocomplete)
-async def create_character(interaction, name: str, faceclaim: str, image: str, bio: str, password: str, gender: str, sexuality: str):
+@app_commands.autocomplete(gender=gender_autocomplete, sexuality=sexuality_autocomplete, program=program_autocomplete, year=year_autocomplete)
+async def create_character(
+    interaction: Interaction, 
+    name: str, 
+    faceclaim: str, 
+    image: str, 
+    bio: str, 
+    password: str, 
+    gender: str, 
+    sexuality: str, 
+    program: str,
+    year: str
+):
     try:
         if not is_valid_image_url(image):
             await interaction.response.send_message("❌ Invalid image URL. Please provide an HTTPS URL ending with .jpg, .jpeg, or .png.", ephemeral=True)
@@ -99,7 +116,9 @@ async def create_character(interaction, name: str, faceclaim: str, image: str, b
                 bio=bio,
                 password=password,
                 gender=GenderEnum(gender),
-                sexuality=SexualityEnum(sexuality)
+                sexuality=SexualityEnum(sexuality),
+                program=ProgramEnum(program),
+                year=YearEnum(year)
             )
             db.add(character)
             db.commit()
@@ -111,7 +130,9 @@ async def create_character(interaction, name: str, faceclaim: str, image: str, b
                 'image': image,
                 'bio': bio,
                 'gender': gender,
-                'sexuality': sexuality
+                'sexuality': sexuality,
+                'program': program,
+                'year': year
             })
         except IntegrityError:
             await interaction.response.send_message(f"❌ A character named '{name}' already exists!", ephemeral=True)
@@ -122,8 +143,19 @@ async def create_character(interaction, name: str, faceclaim: str, image: str, b
         logging.error(f"Error in create_character: {e}")
 
 @tree.command(name="edit_character", description="Edits an existing character")
-@app_commands.autocomplete(name=character_name_autocomplete, gender=gender_autocomplete, sexuality=sexuality_autocomplete)
-async def edit_character(interaction: Interaction, name: str, password: str, faceclaim: Optional[str] = None, image: Optional[str] = None, bio: Optional[str] = None, gender: Optional[str] = None, sexuality: Optional[str] = None):
+@app_commands.autocomplete(name=character_name_autocomplete, gender=gender_autocomplete, sexuality=sexuality_autocomplete, program=program_autocomplete, year=year_autocomplete)
+async def edit_character(
+    interaction: Interaction, 
+    name: str, 
+    password: str, 
+    faceclaim: Optional[str] = None, 
+    image: Optional[str] = None, 
+    bio: Optional[str] = None, 
+    gender: Optional[str] = None, 
+    sexuality: Optional[str] = None,
+    program: Optional[str] = None,
+    year: Optional[str] = None
+):
     try:
         if not verify_character(name, password):
             await interaction.response.send_message("❌ Invalid character name or password.", ephemeral=True)
@@ -150,6 +182,10 @@ async def edit_character(interaction: Interaction, name: str, password: str, fac
                 character.gender = GenderEnum(gender)
             if sexuality:
                 character.sexuality = SexualityEnum(sexuality)
+            if program:
+                character.program = ProgramEnum(program)
+            if year:
+                character.year = YearEnum(year)
             db.commit()
             await interaction.response.send_message(f"✓ Character '{name}' has been updated!")
             await broadcast_message({'action': 'edit', 'name': name})
@@ -243,7 +279,19 @@ async def get_characters():
         db = SessionLocal()
         try:
             characters = db.query(DBCharacter).all()
-            return [{"name": c.name, "faceclaim": c.faceclaim, "image": c.image, "bio": c.bio} for c in characters]
+            return [
+                {
+                    "name": c.name,
+                    "faceclaim": c.faceclaim,
+                    "image": c.image,
+                    "bio": c.bio,
+                    "gender": c.gender.value,
+                    "sexuality": c.sexuality.value,
+                    "program": c.program.value,
+                    "year": c.year.value
+                } 
+                for c in characters
+            ]
         finally:
             db.close()
     except Exception as e:
@@ -290,11 +338,17 @@ def upgrade_database():
         with db.begin():
             db.execute(text("""
                 ALTER TABLE dbcharacter 
-                ADD COLUMN new_column_name VARCHAR(255) 
-                DEFAULT 'default_value'
+                ADD COLUMN program VARCHAR(255) 
                 ON CONFLICT DO NOTHING;
             """))
-        logger.info("Database upgraded successfully: new_column_name added.")
+
+            db.execute(text("""
+                ALTER TABLE dbcharacter 
+                ADD COLUMN year VARCHAR(20) 
+                ON CONFLICT DO NOTHING;
+            """))
+
+        logger.info("Database upgraded successfully: program and year columns added.")
     except Exception as e:
         logger.error(f"Database upgrade failed: {e}")
     finally:
