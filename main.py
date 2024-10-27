@@ -180,13 +180,14 @@ async def show_character(interaction, name: str):
 @tree.command(name="character_list", description="Shows the list of all characters")
 async def list_all_characters(interaction):
     try:
-        website_url = "https://shield-database.onrender.com/"
+        website_url = "https://shield-database.onrender.com"
         await interaction.response.send_message(f"📚 View the complete character list [here]({website_url})")
     except Exception as e:
         await interaction.response.send_message("❌ An error occurred while processing your request.", ephemeral=True)
         logging.error(f"Error in list_all_characters: {e}")
 
 @app.get("/")
+@app.get("/character/{name}")
 async def read_root(request: Request):
     return FileResponse("public/index.html")
 

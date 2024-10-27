@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8" />
-    <title>LIBRARY</title>
+    <title>SHIELD DATABASE</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css" />
     <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700|Open+Sans:400,400italic,700,700italic,300italic,300|Inconsolata" rel="stylesheet" type="text/css" />
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
@@ -11,16 +11,16 @@
 
     <script type="text/javascript">
         $(document).ready(function() {
-            // Fetch characters from API endpoint
-            $.get("/api/characters", function(characters) {
-                const characterHTML = characters.map(character => {
-                    // Split the name into first name and surname
-                    const nameParts = character.name.split(" ");
-                    const firstName = nameParts[0];
-                    const surname = nameParts.slice(1).join(" ");
+            $.ajax({
+                url: "/api/characters",
+                method: "GET",
+                success: function(characters) {
+                    const characterHTML = characters.map(character => {
+                        const nameParts = character.name.split(" ");
+                        const firstName = nameParts[0];
+                        const surname = nameParts.slice(1).join(" ");
 
-                    return `
-                        <a href="/character/${character.name.toLowerCase()}">
+                        return `
                             <div class="grid-item" data-faceclaim="${character.faceclaim}">
                                 <div class="name">
                                     <div class="firstname">${firstName.toUpperCase()}</div>
@@ -29,49 +29,54 @@
                                 <img src="${character.image}" alt="${character.name}">
                                 <div class="info">
                                     ${character.faceclaim}<br>
+                                    ${character.bio ? `<a href="${character.bio}" target="_blank"><i class="fa fa-file-text"></i></a>` : ''}
                                 </div>
                             </div>
-                        </a>
-                    `;
-                }).join("");
+                        `;
+                    }).join("");
 
-                $(".grid").html(characterHTML);
+                    $(".grid").html(characterHTML);
 
-                // Create faceclaim filters dynamically
-                const faceclaims = [...new Set(characters.map(char => char.faceclaim))].sort();
-                const filterHTML = faceclaims.map(faceclaim => 
-                    `<button class="button" data-filter='[data-faceclaim="${faceclaim}"]'>${faceclaim}</button>`
-                ).join("");
-                
-                $("#faceclaim-filters").append(filterHTML);
+                    const faceclaims = [...new Set(characters.map(char => char.faceclaim))].sort();
+                    const filterHTML = faceclaims.map(faceclaim => 
+                        `<button class="button" data-filter='[data-faceclaim="${faceclaim}"]'>${faceclaim}</button>`
+                    ).join("");
+                    
+                    $("#faceclaim-filters").append(filterHTML);
 
-                // Initialize Isotope
-                var $grid = $('.grid').isotope({
-                    itemSelector: '.grid-item'
-                });
-
-                var filters = {};
-
-                $('.filters').on('click', '.button', function() {
-                    var $this = $(this);
-                    var $buttonGroup = $this.parents('.button-group');
-                    var filterGroup = $buttonGroup.attr('data-filter-group');
-                    filters[filterGroup] = $this.attr('data-filter');
-                    var filterValue = concatValues(filters);
-                    $grid.isotope({ filter: filterValue });
-                });
-
-                $('.button-group').each(function(i, buttonGroup) {
-                    var $buttonGroup = $(buttonGroup);
-                    $buttonGroup.on('click', 'button', function() {
-                        $buttonGroup.find('.is-checked').removeClass('is-checked');
-                        $(this).addClass('is-checked');
+                    var $grid = $('.grid').isotope({
+                        itemSelector: '.grid-item',
+                        layoutMode: 'fitRows',
+                        sortBy: 'original-order'
                     });
-                });
 
-                $grid.imagesLoaded().progress(function() {
-                    $grid.isotope('layout');
-                });
+                    var filters = {};
+
+                    $('.filters').on('click', '.button', function() {
+                        var $this = $(this);
+                        var $buttonGroup = $this.parents('.button-group');
+                        var filterGroup = $buttonGroup.attr('data-filter-group');
+                        filters[filterGroup] = $this.attr('data-filter');
+                        var filterValue = concatValues(filters);
+                        $grid.isotope({ filter: filterValue });
+                    });
+
+                    $('.button-group').each(function(i, buttonGroup) {
+                        var $buttonGroup = $(buttonGroup);
+                        $buttonGroup.on('click', 'button', function() {
+                            $buttonGroup.find('.is-checked').removeClass('is-checked');
+                            $(this).addClass('is-checked');
+                        });
+                    });
+
+                    $grid.imagesLoaded().progress(function() {
+                        $grid.isotope('layout');
+                    });
+                },
+                error: function(xhr, status, error) {
+                    console.error("Error fetching characters:", error);
+                    $(".grid").html("<p class='error-message'>Error loading characters. Please try again later.</p>");
+                }
             });
 
             function concatValues(obj) {
@@ -105,10 +110,10 @@
             color: #fff;
         }
 
-        a, a:active, a:visited, a:hover {
-            color: #828282;
-            text-decoration: none;
-            transition: all 0.3s ease-out;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
         body {
@@ -117,6 +122,14 @@
             font-size: 9px;
             font-family: "open sans", calibri, Helvetica, sans-serif;
             line-height: 100%;
+            background: #f5f5f5;
+        }
+
+        .error-message {
+            color: #ff0000;
+            text-align: center;
+            font-size: 14px;
+            margin-top: 20px;
         }
 
         .toptitle, h1 {
@@ -138,6 +151,7 @@
             color: #323232;
             font-weight: 400;
             font-size: 12px !important;
+            margin-bottom: 10px;
         }
 
         #top {
@@ -147,7 +161,7 @@
             z-index: 99999;
             padding: 15px;
             width: 100%;
-            height: 20px;
+            height: 50px;
             background: #000;
             color: #fff;
             text-transform: uppercase;
@@ -155,51 +169,51 @@
         }
 
         .grid {
-            position: fixed;
-            top: 80px;
-            margin-bottom: 100px;
-            margin-left: 180px;
-            min-height: 800px;
-            text-align: justify;
-            line-height: 100%;
+            position: relative;
+            margin: 80px 0 0 220px;
+            padding: 20px;
+            display: flex;
+            flex-wrap: wrap;
         }
 
         .grid-item {
             margin: 15px;
-            padding: 10px 0;
+            padding: 15px;
             width: 200px;
-            height: 240px;
             background: #000;
             color: #fff;
             text-align: center;
             text-transform: uppercase;
+            transition: all 0.3s ease-out;
+        }
+
+        .grid-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
         }
 
         .grid-item img {
-            position: relative;
             width: 150px;
             height: 150px;
             border-radius: 50%;
             transition: all 0.3s ease-out;
+            object-fit: cover;
         }
 
         .grid-item:hover img {
-            box-shadow: 0 0 0 21px black, 0 0 0 22px #fff;
-            filter: grayscale(100%);
-            transform: scale(0.8);
+            transform: scale(0.95);
+            filter: grayscale(50%);
         }
 
         .name {
             margin: 15px 0;
             letter-spacing: 2px;
-            font-weight: 700;
             font-family: "Montserrat", Helvetica, cambria, sans-serif;
-            line-height: 100%;
+            line-height: 1.2;
         }
 
         .firstname {
             font-size: 14px;
-            line-height: 100%;
             font-weight: 700;
         }
 
@@ -207,18 +221,28 @@
             margin-top: 2px;
             font-size: 14px;
             color: rgba(255, 255, 255, 0.9);
-            line-height: 100%;
-            font-weight: 800;
+            font-weight: 400;
         }
 
         .info {
-            position: relative;
-            margin: 15px 0;
+            margin: 15px 0 5px;
             color: #ccc;
             letter-spacing: 1px;
             font-size: 10px;
             font-family: "Open Sans";
-            line-height: 120%;
+            line-height: 1.4;
+        }
+
+        .info a {
+            color: #fff;
+            margin-left: 8px;
+            font-size: 12px;
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+
+        .info a:hover {
+            opacity: 1;
         }
 
         .sidebar {
@@ -226,9 +250,10 @@
             top: 0;
             left: 0;
             padding: 40px;
-            width: 150px;
+            width: 200px;
             height: 100%;
             background: #fff;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
         }
 
         .filters {
@@ -237,7 +262,7 @@
 
         button {
             display: block;
-            padding-left: 10px;
+            padding: 8px 10px;
             width: 100%;
             outline: none;
             border: none;
@@ -249,6 +274,17 @@
             font-size: 9px;
             font-family: "Open Sans", Helvetica, cambria, sans-serif;
             transition: all 0.3s ease-out;
+            cursor: pointer;
+        }
+
+        button:hover {
+            color: #000;
+            background: #f5f5f5;
+        }
+
+        .button.is-checked {
+            color: #000;
+            font-weight: 700;
         }
 
         .button.is-checked::before {
@@ -258,19 +294,30 @@
             font-family: FontAwesome;
         }
 
-        .button:active, .button.is-checked {
-            color: #000;
-        }
-
         .button-group {
             margin: 20px 0;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 160px;
+                padding: 20px;
+            }
+            
+            .grid {
+                margin-left: 180px;
+            }
+            
+            .grid-item {
+                width: 180px;
+            }
         }
     </style>
 </head>
 
 <body>
     <div id="top">
-        <div class="toptitle">LIBRARY</div>
+        <div class="toptitle">SHIELD DATABASE</div>
     </div>
 
     <div class="sidebar">
