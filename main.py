@@ -168,10 +168,6 @@ async def list_all_characters(interaction):
         await interaction.response.send_message("❌ An error occurred while processing your request.", ephemeral=True)
         print(f"Error in list_all_characters: {e}")
 
-@app.get("/")
-async def read_root():
-    return FileResponse("public/index.html")
-
 @app.get("/api/characters")
 async def get_characters():
     try:
