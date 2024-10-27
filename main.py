@@ -232,7 +232,7 @@ async def head_root(request: Request):
         return HTMLResponse(headers=headers)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Index file not found")
-# API endpoints
+# API endpoints 
 @app.get("/api/characters")
 async def get_characters():
     try:
