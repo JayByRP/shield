@@ -1,5 +1,6 @@
 import os
 import asyncio
+import aiofiles
 import logging
 from typing import Optional
 from fastapi import FastAPI, HTTPException, Request
@@ -211,8 +212,8 @@ async def list_all_characters(interaction):
 async def serve_index(request: Request):
     try:
         logger.info("Serving index.html")
-        with open("public/index.html") as f:
-            content = f.read()
+        async with aiofiles.open("public/index.html", mode='r') as f:
+            content = await f.read()
         return HTMLResponse(content=content)
     except FileNotFoundError:
         logger.error("Index file not found")
@@ -220,7 +221,8 @@ async def serve_index(request: Request):
 
 @app.head("/")
 async def head_root(request: Request):
-    return FileResponse("public/index.html")
+    headers = {"Content-Type": "text/html"}
+    return HTMLResponse(headers=headers)
 
 # API endpoints
 @app.get("/api/characters")
