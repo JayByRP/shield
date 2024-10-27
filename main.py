@@ -6,6 +6,7 @@ from discord import app_commands, Intents, Client, Embed, Color
 from pydantic import BaseModel, HttpUrl
 import uvicorn
 import asyncio
+import logging
 import re
 from websockets import serve
 import json
@@ -24,11 +25,22 @@ ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="public"), name="static")
 
+logging.basicConfig(level=logging.INFO)
+# Initialize Discord bot
+intents = Intents.default()
+intents.message_content = True  # Make sure to enable this intent
+client = Client(intents=intents)  # Create the client instance
+tree = app_commands.CommandTree(client)  # Initialize command tree
+
 @app.get("/")
 def read_root():
     return {
         "message": "🚀 The Librarian is up and running! 🎉"
     }
+
+@Client.event
+async def on_ready():
+    logging.info(f"✓ Bot logged in as {client.user}")
 
 # Initialize Discord bot
 intents = Intents.default()
