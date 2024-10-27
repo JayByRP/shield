@@ -1,7 +1,6 @@
 import os
 import asyncio
 import logging
-import uvicorn
 from typing import Optional
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
@@ -234,17 +233,25 @@ async def start_websocket_server():
 async def run_discord_bot():
     await client.start(os.getenv("DISCORD_TOKEN"))
 
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(start_websocket_server())
+    asyncio.create_task(ping_websocket_clients())
+    asyncio.create_task(run_discord_bot())
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    await client.close()  # Close Discord client on shutdown
+
+# Define lifespan context manager
+@app.lifespan
+async def lifespan(app: FastAPI):
+    # Startup
+    await startup_event()
+    yield  # This yield is where the app runs
+    # Shutdown
+    await shutdown_event()
+
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-
-    loop = asyncio.get_event_loop()
-
-    # Start the FastAPI app and websocket server
-    loop.create_task(start_websocket_server())
-
-    # Start Discord bot in a separate task
-    loop.create_task(run_discord_bot())
-
-    # Run the FastAPI app in the event loop
-    uvicorn.run(app, host="0.0.0.0", port=8000)
-    client.run(os.getenv("DISCORD_TOKEN"))
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)  # Adjust the port as needed
