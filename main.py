@@ -162,7 +162,7 @@ async def show_character(interaction, name: str):
 @tree.command(name="list_all_characters", description="Shows the list of all characters")
 async def list_all_characters(interaction):
     try:
-        website_url = "https://shield-database.onrender.com/"  # Update with your actual URL
+        website_url = "https://shield-database.onrender.com/"
         await interaction.response.send_message(f"📚 View the complete character list [here]({website_url})")
     except Exception as e:
         await interaction.response.send_message("❌ An error occurred while processing your request.", ephemeral=True)
@@ -229,36 +229,21 @@ logging.basicConfig(level=logging.INFO)
 async def start_discord_bot():
     try:
         logging.info("Connecting to Discord...")
-        await client.start(os.getenv('DISCORD_TOKEN'))
-        logging.info("Bot connected successfully.")
+        await client.start(os.getenv('DISCORD_TOKEN'))  # Make sure the token is valid
     except Exception as e:
         logging.error(f"Failed to connect to Discord: {e}")
 
 async def start_fastapi():
-    config = uvicorn.Config(
-        app, 
-        host="0.0.0.0", 
-        port=int(os.getenv('PORT', 3000)), 
-        loop="asyncio"
-    )
+    config = uvicorn.Config(app, host="0.0.0.0", port=8000, log_level="info")
     server = uvicorn.Server(config)
     await server.serve()
 
 async def main():
-    # Create a single event loop for all async services
-    loop = asyncio.get_event_loop()
-    
-    # Test database connection
-    if not test_db_connection():
-        print("❌ Failed to connect to database. Exiting...")
-        return
-
-    # Start WebSocket server and Discord bot concurrently
     await asyncio.gather(
         start_websocket_server(),
         start_discord_bot(),
         start_fastapi(),
-        ping_websocket_clients()  # Start pinging clients
+        ping_websocket_clients()
     )
 
 if __name__ == "__main__":
