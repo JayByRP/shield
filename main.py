@@ -4,7 +4,8 @@ import logging
 from typing import Optional
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware
 from discord import app_commands, Intents, Client, Embed, Color
 from pydantic import BaseModel, HttpUrl
 from websockets import serve, ConnectionClosed
@@ -21,7 +22,18 @@ ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
 
 # Initialize FastAPI
 app = FastAPI()
-app.mount("/static", StaticFiles(directory="public"), name="static")
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Mount the static files directory
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Initialize Discord bot
 intents = Intents.default()
@@ -34,6 +46,10 @@ Base.metadata.create_all(bind=engine)
 
 # Global websocket connections
 websocket_connections = set()
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Pydantic model for request validation
 class Character(BaseModel):
@@ -180,21 +196,27 @@ async def show_character(interaction, name: str):
 @tree.command(name="character_list", description="Shows the list of all characters")
 async def list_all_characters(interaction):
     try:
-        website_url = "https://shield-database.onrender.com"
+        website_url = "https://shield-hzo0.onrender.com/static/index.html"  # Updated path
         await interaction.response.send_message(f"📚 View the complete character list [here]({website_url})")
     except Exception as e:
         await interaction.response.send_message("❌ An error occurred while processing your request.", ephemeral=True)
         logging.error(f"Error in list_all_characters: {e}")
 
-@app.get("/")
-@app.get("/character/{name}")
-async def read_root(request: Request):
-    return FileResponse("public/index.html")
+# Serve index.html for the root path and character paths
+@app.get("/", response_class=HTMLResponse)
+@app.get("/character/{name}", response_class=HTMLResponse)
+async def serve_index(request: Request):
+    try:
+        with open("static/index.html") as f:
+            return HTMLResponse(content=f.read())
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Index file not found")
 
 @app.head("/")
 async def head_root(request: Request):
-    return FileResponse("public/index.html")
+    return FileResponse("static/index.html")
 
+# API endpoints
 @app.get("/api/characters")
 async def get_characters():
     try:
@@ -205,7 +227,20 @@ async def get_characters():
         finally:
             db.close()
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Failed to fetch characters")
+        raise HTTPException(status_code=500, detail=str(e))
+    
+# Handle 404 errors
+@app.exception_handler(404)
+async def not_found_exception_handler(request: Request, exc: HTTPException):
+    return HTMLResponse(
+        status_code=404,
+        content="<h1>404 - Page Not Found</h1><p>The requested resource was not found on this server.</p>"
+    )
+
+# Add this to your routes
+@app.get("/api/health")
+async def health_check():
+    return {"status": "healthy"}
 
 async def websocket_handler(websocket):
     try:
