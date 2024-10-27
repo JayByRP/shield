@@ -116,7 +116,7 @@ async def character_name_autocomplete(interaction: Interaction, current: str):
 
 @tree.command(name="edit_character", description="Edits an existing character")
 @app_commands.autocomplete(name=character_name_autocomplete)
-async def edit_character(interaction, name: str, password: str, faceclaim: Optional[str] = None, image: Optional[str] = None, bio: Optional[str] = None):
+async def edit_character(interaction: Interaction, name: str, password: str, faceclaim: Optional[str] = None, image: Optional[str] = None, bio: Optional[str] = None):
     try:
         if not verify_character(name, password):
             await interaction.response.send_message("❌ Invalid character name or password.", ephemeral=True)
@@ -150,7 +150,7 @@ async def edit_character(interaction, name: str, password: str, faceclaim: Optio
 
 @tree.command(name="delete_character", description="Deletes a character")
 @app_commands.autocomplete(name=character_name_autocomplete)
-async def delete_character(interaction, name: str, password: str):
+async def delete_character(interaction: Interaction, name: str, password: str):
     try:
         if not verify_character(name, password):
             await interaction.response.send_message("❌ Invalid character name or password.", ephemeral=True)
