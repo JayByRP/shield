@@ -2,11 +2,12 @@ import os
 import asyncio
 import logging
 from typing import Optional
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, WebSocket
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
-from discord import app_commands, Intents, Client, Embed, Color
+from discord import app_commands, Intents, Client, Embed, Color, Interaction
+from discord.app_commands import Choice
 from pydantic import BaseModel, HttpUrl
 from websockets import serve, ConnectionClosed
 from sqlalchemy.exc import IntegrityError
@@ -69,8 +70,6 @@ def verify_character(name: str, password: str) -> bool:
         db.close()
 
 def is_valid_image_url(url: str) -> bool:
-    if not url:
-        return False
     pattern = re.compile(r'^https://.*\.(jpg|jpeg|png)$', re.IGNORECASE)
     return bool(pattern.match(url)) and len(url) <= 2048
 
@@ -160,25 +159,28 @@ async def delete_character(interaction, name: str, password: str):
         await interaction.response.send_message("❌ An error occurred while processing your request.", ephemeral=True)
         logging.error(f"Error in delete_character: {e}")
 
+# Autocomplete function for character names
+async def character_name_autocomplete(interaction: Interaction, current: str):
+    db = SessionLocal()
+    try:
+        # Query characters whose names start with the typed string (case insensitive)
+        characters = db.query(DBCharacter).filter(DBCharacter.name.ilike(f"{current}%")).all()
+        return [Choice(name=character.name, value=character.name) for character in characters[:5]]
+    finally:
+        db.close()
+
+# Show character command with autocomplete for the name parameter
 @tree.command(name="show_character", description="Shows a character's profile")
-async def show_character(interaction, name: str):
+@app_commands.autocomplete(name=character_name_autocomplete)
+async def show_character(interaction: Interaction, name: str):
     try:
         db = SessionLocal()
         try:
-            # Fetch characters that start with the given prefix
-            characters = db.query(DBCharacter).filter(DBCharacter.name.ilike(f"{name}%")).all()
-            if not characters:
+            character = db.query(DBCharacter).filter(DBCharacter.name == name).first()
+            if not character:
                 await interaction.response.send_message("❌ Character not found.", ephemeral=True)
                 return
             
-            # Limit suggestions to a maximum of 5 characters
-            suggestions = [c.name for c in characters][:5]
-            if len(suggestions) > 1:
-                suggestions_list = ", ".join(suggestions)
-                await interaction.response.send_message(f"⚠️ Multiple characters found: {suggestions_list}. Please specify.")
-                return
-
-            character = characters[0]
             embed = Embed(
                 title=character.name.upper(),
                 description=f"[Character Sheet]({character.bio})" if character.bio.startswith('http') else "N/A",
@@ -196,24 +198,23 @@ async def show_character(interaction, name: str):
 @tree.command(name="character_list", description="Shows the list of all characters")
 async def list_all_characters(interaction):
     try:
-        website_url = "https://shield-hzo0.onrender.com/public/index.html"  # Updated path
+        website_url = "https://shield-hzo0.onrender.com/public/index.html"
         await interaction.response.send_message(f"📚 View the complete character list [here]({website_url})")
     except Exception as e:
         await interaction.response.send_message("❌ An error occurred while processing your request.", ephemeral=True)
         logging.error(f"Error in list_all_characters: {e}")
 
-# Serve index.html for the root path and character paths
+# Serve index.html for root and character paths
 @app.get("/", response_class=HTMLResponse)
 @app.get("/character/{name}", response_class=HTMLResponse)
-async def serve_index(request: Request):
+async def serve_index():
     try:
-        with open("public/index.html") as f:
-            return HTMLResponse(content=f.read())
+        return FileResponse("public/index.html")
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Index file not found")
 
 @app.head("/")
-async def head_root(request: Request):
+async def head_root():
     return FileResponse("public/index.html")
 
 # API endpoints
@@ -228,25 +229,18 @@ async def get_characters():
             db.close()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
-# Handle 404 errors
-@app.exception_handler(404)
-async def not_found_exception_handler(request: Request, exc: HTTPException):
-    return HTMLResponse(
-        status_code=404,
-        content="<h1>404 - Page Not Found</h1><p>The requested resource was not found on this server.</p>"
-    )
 
-# Add this to your routes
+# Health check
 @app.get("/api/health")
 async def health_check():
     return {"status": "healthy"}
 
-async def websocket_handler(websocket):
+# WebSocket handling
+async def websocket_handler(websocket: WebSocket):
+    await websocket.accept()
+    websocket_connections.add(websocket)
     try:
-        websocket_connections.add(websocket)
-        async for _ in websocket:  # Keep the connection open
-            pass  # Placeholder for receiving messages if needed
+        await websocket.receive_text()
     except ConnectionClosed:
         pass
     finally:
@@ -257,10 +251,10 @@ async def ping_websocket_clients():
         if websocket_connections:
             for ws in list(websocket_connections):
                 try:
-                    await ws.ping()  # Send a ping to the client
+                    await ws.ping()
                 except Exception:
-                    websocket_connections.remove(ws)  # Remove if the connection fails
-        await asyncio.sleep(30)  # Wait 30 seconds before the next ping
+                    websocket_connections.remove(ws)
+        await asyncio.sleep(30)
 
 @client.event
 async def on_ready():
@@ -271,21 +265,12 @@ async def start_discord_bot():
     await client.start(os.getenv("DISCORD_TOKEN"))
 
 async def websocket_server():
-    async with serve(websocket_handler, "0.0.0.0", 6789):  # Change port as needed
+    async with serve(websocket_handler, "0.0.0.0", 8001):
         await ping_websocket_clients()
-
-# Use FastAPI lifespan for startup and shutdown
-async def lifespan(app: FastAPI):
-    # Startup
-    task_discord_bot = asyncio.create_task(start_discord_bot())
-    task_websocket_server = asyncio.create_task(websocket_server())
-    yield  # Run the app
-    # Shutdown
-    task_discord_bot.cancel()
-    task_websocket_server.cancel()
-
-app = FastAPI(lifespan=lifespan)  # Attach the lifespan function here
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)  # Adjust the port as needed
+    loop = asyncio.get_event_loop()
+    loop.create_task(start_discord_bot())
+    loop.create_task(websocket_server())
+    uvicorn.run(app, host="0.0.0.0", port=8000)
