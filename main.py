@@ -2,7 +2,7 @@ import os
 import asyncio
 import logging
 from typing import Optional
-from fastapi import FastAPI, HTTPException, Request, WebSocket
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -70,6 +70,8 @@ def verify_character(name: str, password: str) -> bool:
         db.close()
 
 def is_valid_image_url(url: str) -> bool:
+    if not url:
+        return False
     pattern = re.compile(r'^https://.*\.(jpg|jpeg|png)$', re.IGNORECASE)
     return bool(pattern.match(url)) and len(url) <= 2048
 
@@ -163,13 +165,11 @@ async def delete_character(interaction, name: str, password: str):
 async def character_name_autocomplete(interaction: Interaction, current: str):
     db = SessionLocal()
     try:
-        # Query characters whose names start with the typed string (case insensitive)
         characters = db.query(DBCharacter).filter(DBCharacter.name.ilike(f"{current}%")).all()
         return [Choice(name=character.name, value=character.name) for character in characters[:5]]
     finally:
         db.close()
 
-# Show character command with autocomplete for the name parameter
 @tree.command(name="show_character", description="Shows a character's profile")
 @app_commands.autocomplete(name=character_name_autocomplete)
 async def show_character(interaction: Interaction, name: str):
@@ -180,7 +180,6 @@ async def show_character(interaction: Interaction, name: str):
             if not character:
                 await interaction.response.send_message("❌ Character not found.", ephemeral=True)
                 return
-            
             embed = Embed(
                 title=character.name.upper(),
                 description=f"[Character Sheet]({character.bio})" if character.bio.startswith('http') else "N/A",
@@ -198,13 +197,12 @@ async def show_character(interaction: Interaction, name: str):
 @tree.command(name="character_list", description="Shows the list of all characters")
 async def list_all_characters(interaction):
     try:
-        website_url = "https://shield-hzo0.onrender.com/public/index.html"
+        website_url = "https://shield-hzo0.onrender.com/public/index.html"  # Updated path
         await interaction.response.send_message(f"📚 View the complete character list [here]({website_url})")
     except Exception as e:
         await interaction.response.send_message("❌ An error occurred while processing your request.", ephemeral=True)
         logging.error(f"Error in list_all_characters: {e}")
 
-# Serve index.html for root and character paths
 @app.get("/", response_class=HTMLResponse)
 @app.get("/character/{name}", response_class=HTMLResponse)
 async def serve_index():
@@ -229,18 +227,25 @@ async def get_characters():
             db.close()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+# Handle 404 errors
+@app.exception_handler(404)
+async def not_found_exception_handler(request: Request, exc: HTTPException):
+    return HTMLResponse(
+        status_code=404,
+        content="<h1>404 - Page Not Found</h1><p>The requested resource was not found on this server.</p>"
+    )
 
-# Health check
+# Add this to your routes
 @app.get("/api/health")
 async def health_check():
     return {"status": "healthy"}
 
-# WebSocket handling
-async def websocket_handler(websocket: WebSocket):
-    await websocket.accept()
-    websocket_connections.add(websocket)
+async def websocket_handler(websocket):
     try:
-        await websocket.receive_text()
+        websocket_connections.add(websocket)
+        async for _ in websocket:  # Keep the connection open
+            pass  # Placeholder for receiving messages if needed
     except ConnectionClosed:
         pass
     finally:
@@ -251,10 +256,10 @@ async def ping_websocket_clients():
         if websocket_connections:
             for ws in list(websocket_connections):
                 try:
-                    await ws.ping()
+                    await ws.ping()  # Send a ping to the client
                 except Exception:
-                    websocket_connections.remove(ws)
-        await asyncio.sleep(30)
+                    websocket_connections.remove(ws)  # Remove if the connection fails
+        await asyncio.sleep(30)  # Wait 30 seconds before the next ping
 
 @client.event
 async def on_ready():
@@ -265,12 +270,21 @@ async def start_discord_bot():
     await client.start(os.getenv("DISCORD_TOKEN"))
 
 async def websocket_server():
-    async with serve(websocket_handler, "0.0.0.0", 8001):
+    async with serve(websocket_handler, "0.0.0.0", 6789):  # Change port as needed
         await ping_websocket_clients()
+
+# Use FastAPI lifespan for startup and shutdown
+async def lifespan(app: FastAPI):
+    # Startup
+    task_discord_bot = asyncio.create_task(start_discord_bot())
+    task_websocket_server = asyncio.create_task(websocket_server())
+    yield  # Run the app
+    # Shutdown
+    task_discord_bot.cancel()
+    task_websocket_server.cancel()
+
+app = FastAPI(lifespan=lifespan)  # Attach the lifespan function here
 
 if __name__ == "__main__":
     import uvicorn
-    loop = asyncio.get_event_loop()
-    loop.create_task(start_discord_bot())
-    loop.create_task(websocket_server())
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000)  # Adjust the port as needed
