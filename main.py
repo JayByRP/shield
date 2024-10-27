@@ -10,6 +10,7 @@ from discord import app_commands, Intents, Client, Embed, Color, Interaction
 from discord.app_commands import Choice
 from pydantic import BaseModel, HttpUrl
 from websockets import serve
+from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from database import Base, engine, SessionLocal
 from models import DBCharacter, GenderEnum, SexualityEnum
@@ -283,9 +284,26 @@ async def websocket_server():
     async with serve(websocket_handler, "0.0.0.0", 6789):
         await ping_websocket_clients()
 
+def upgrade_database():
+    db = SessionLocal()
+    try:
+        with db.begin():
+            db.execute(text("""
+                ALTER TABLE dbcharacter 
+                ADD COLUMN new_column_name VARCHAR(255) 
+                DEFAULT 'default_value'
+                ON CONFLICT DO NOTHING;
+            """))
+        logger.info("Database upgraded successfully: new_column_name added.")
+    except Exception as e:
+        logger.error(f"Database upgrade failed: {e}")
+    finally:
+        db.close()
+
 # Lifespan
 @app.on_event("startup")
 async def startup_event():
+    upgrade_database()
     asyncio.create_task(start_discord_bot())
     asyncio.create_task(websocket_server())
 
