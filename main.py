@@ -8,10 +8,11 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from discord import app_commands, Intents, Client, Embed, Color, Interaction
 from discord.app_commands import Choice
-from websockets import serve
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from pydantic import BaseModel, HttpUrl
+from websockets import serve, ConnectionClosed
 from sqlalchemy.exc import IntegrityError
+from database import Base, engine, SessionLocal
+from models import DBCharacter
 from dotenv import load_dotenv
 import json
 import re
@@ -19,7 +20,6 @@ import re
 # Load environment variables
 load_dotenv()
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
-DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Initialize FastAPI
 app = FastAPI()
@@ -36,18 +36,15 @@ app.add_middleware(
 # Mount the static files directory
 app.mount("/public", StaticFiles(directory="public"), name="public")
 
-# Database setup
-engine = create_engine(DATABASE_URL)
-from database import SessionLocal, Base  # Import from database.py
-from models import DBCharacter  # Import from models.py
-
-Base.metadata.create_all(bind=engine)
 
 # Initialize Discord bot
 intents = Intents.default()
 intents.message_content = True
 client = Client(intents=intents)
 tree = app_commands.CommandTree(client)
+
+# Initialize database
+Base.metadata.create_all(bind=engine)
 
 # Global websocket connections
 websocket_connections = set()
@@ -87,7 +84,7 @@ async def broadcast_message(message: dict):
 
 # Discord bot commands
 @tree.command(name="create_character", description="Creates a new character profile")
-async def create_character(interaction: Interaction, name: str, faceclaim: str, image: str, bio: str, password: str):
+async def create_character(interaction, name: str, faceclaim: str, image: str, bio: str, password: str):
     try:
         if not is_valid_image_url(image):
             await interaction.response.send_message("❌ Invalid image URL. Please provide an HTTPS URL ending with .jpg, .jpeg, or .png.", ephemeral=True)
@@ -201,7 +198,7 @@ async def show_character(interaction: Interaction, name: str):
         logging.error(f"Error in show_character: {e}")
 
 @tree.command(name="character_list", description="Shows the list of all characters")
-async def list_all_characters(interaction: Interaction):
+async def list_all_characters(interaction):
     try:
         website_url = "https://shield-hzo0.onrender.com"  # Updated path
         await interaction.response.send_message(f"📚 View the complete character list [here]({website_url})")
@@ -209,35 +206,91 @@ async def list_all_characters(interaction: Interaction):
         await interaction.response.send_message("❌ An error occurred while processing your request.", ephemeral=True)
         logging.error(f"Error in list_all_characters: {e}")
 
+
 @app.get("/", response_class=HTMLResponse)
 async def serve_index(request: Request):
     try:
         logger.info("Serving index.html")
-        return FileResponse("public/index.html")
-    except Exception as e:
-        logger.error(f"Error serving index.html: {e}")
-        return HTMLResponse(content="Error serving index.html", status_code=500)
+        with open("public/index.html") as f:
+            content = f.read()
+        return HTMLResponse(content=content)
+    except FileNotFoundError:
+        logger.error("Index file not found")
+        raise HTTPException(status_code=404, detail="Index file not found")
 
-@app.exception_handler(Exception)
-async def _handler(request: Request, exc: Exception):
-    return HTMLResponse(content="404 Not Found", status_code=404)
+@app.head("/")
+async def head_root(request: Request):
+    return FileResponse("public/index.html")
 
-# WebSocket handling
-async def websocket_handler(websocket):
-    await websocket.accept()
-    websocket_connections.add(websocket)
+# API endpoints
+@app.get("/api/characters")
+async def get_characters():
     try:
-        while True:
-            await websocket.receive_text()  # Receive messages if needed
+        db = SessionLocal()
+        try:
+            characters = db.query(DBCharacter).all()
+            return [{"name": c.name, "faceclaim": c.faceclaim, "image": c.image, "bio": c.bio} for c in characters]
+        finally:
+            db.close()
     except Exception as e:
-        logging.error(f"WebSocket connection error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    
+# Handle 404 errors
+@app.exception_handler(404)
+async def not_found_exception_handler(request: Request, exc: HTTPException):
+    return HTMLResponse(
+        status_code=404,
+        content="<h1>404 - Page Not Found</h1><p>The requested resource was not found on this server.</p>"
+    )
+
+# Add this to your routes
+@app.get("/api/health")
+async def health_check():
+    return {"status": "healthy"}
+
+async def websocket_handler(websocket):
+    try:
+        websocket_connections.add(websocket)
+        async for _ in websocket:  # Keep the connection open
+            pass  # Placeholder for receiving messages if needed
     finally:
         websocket_connections.remove(websocket)
 
-@app.websocket("/ws")
-async def websocket_endpoint(websocket):
-    await websocket_handler(websocket)
+async def ping_websocket_clients():
+    while True:
+        if websocket_connections:
+            for ws in list(websocket_connections):
+                try:
+                    await ws.ping()  # Send a ping to the client
+                except Exception:
+                    websocket_connections.remove(ws)  # Remove if the connection fails
+        await asyncio.sleep(30)  # Wait 30 seconds before the next ping
+
+@client.event
+async def on_ready():
+    logging.info(f'Logged in as {client.user}')
+    await tree.sync()
+
+async def start_discord_bot():
+    await client.start(os.getenv("DISCORD_TOKEN"))
+
+
+async def websocket_server():
+    async with serve(websocket_handler, "0.0.0.0", 6789):  # Change port as needed
+        await ping_websocket_clients()
+
+# Use FastAPI lifespan for startup and shutdown
+async def lifespan(app: FastAPI):
+    # Startup
+    task_discord_bot = asyncio.create_task(start_discord_bot())
+    task_websocket_server = asyncio.create_task(websocket_server())
+    yield  # Run the app
+    # Shutdown
+    task_discord_bot.cancel()
+    task_websocket_server.cancel()
+
+app = FastAPI(lifespan=lifespan)  # Attach the lifespan function here
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000)  # Adjust the port as needed
