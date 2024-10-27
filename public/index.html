@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>LIBRARY</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css" />
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700|Open+Sans:400,400italic,700,700italic,300italic,300|Inconsolata" rel="stylesheet" type="text/css" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.isotope/2.2.2/isotope.pkgd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.imagesloaded/4.1.4/imagesloaded.pkgd.min.js"></script>
+
+    <script type="text/javascript">
+        $(document).ready(function() {
+            // Fetch characters from API endpoint
+            $.get("/api/characters", function(characters) {
+                const characterHTML = characters.map(character => {
+                    // Split the name into first name and surname
+                    const nameParts = character.name.split(" ");
+                    const firstName = nameParts[0];
+                    const surname = nameParts.slice(1).join(" ");
+
+                    return `
+                        <a href="/character/${character.name.toLowerCase()}">
+                            <div class="grid-item" data-faceclaim="${character.faceclaim}">
+                                <div class="name">
+                                    <div class="firstname">${firstName.toUpperCase()}</div>
+                                    <div class="surname">${surname.toUpperCase()}</div>
+                                </div>
+                                <img src="${character.image}" alt="${character.name}">
+                                <div class="info">
+                                    ${character.faceclaim}<br>
+                                </div>
+                            </div>
+                        </a>
+                    `;
+                }).join("");
+
+                $(".grid").html(characterHTML);
+
+                // Create faceclaim filters dynamically
+                const faceclaims = [...new Set(characters.map(char => char.faceclaim))].sort();
+                const filterHTML = faceclaims.map(faceclaim => 
+                    `<button class="button" data-filter='[data-faceclaim="${faceclaim}"]'>${faceclaim}</button>`
+                ).join("");
+                
+                $("#faceclaim-filters").append(filterHTML);
+
+                // Initialize Isotope
+                var $grid = $('.grid').isotope({
+                    itemSelector: '.grid-item'
+                });
+
+                var filters = {};
+
+                $('.filters').on('click', '.button', function() {
+                    var $this = $(this);
+                    var $buttonGroup = $this.parents('.button-group');
+                    var filterGroup = $buttonGroup.attr('data-filter-group');
+                    filters[filterGroup] = $this.attr('data-filter');
+                    var filterValue = concatValues(filters);
+                    $grid.isotope({ filter: filterValue });
+                });
+
+                $('.button-group').each(function(i, buttonGroup) {
+                    var $buttonGroup = $(buttonGroup);
+                    $buttonGroup.on('click', 'button', function() {
+                        $buttonGroup.find('.is-checked').removeClass('is-checked');
+                        $(this).addClass('is-checked');
+                    });
+                });
+
+                $grid.imagesLoaded().progress(function() {
+                    $grid.isotope('layout');
+                });
+            });
+
+            function concatValues(obj) {
+                var value = '';
+                for (var prop in obj) {
+                    value += obj[prop];
+                }
+                return value;
+            }
+        });
+    </script>
+
+    <style type="text/css">
+        ::-webkit-scrollbar {
+            width: 5px;
+            border: 2px solid #fff;
+            background-color: #acacac;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            border-radius: 6px;
+            background-color: #acacac;
+        }
+
+        ::-webkit-scrollbar:horizontal {
+            height: 5px;
+        }
+
+        ::selection {
+            background: gray;
+            color: #fff;
+        }
+
+        a, a:active, a:visited, a:hover {
+            color: #828282;
+            text-decoration: none;
+            transition: all 0.3s ease-out;
+        }
+
+        body {
+            color: #828282;
+            font-weight: 100;
+            font-size: 9px;
+            font-family: "open sans", calibri, Helvetica, sans-serif;
+            line-height: 100%;
+        }
+
+        .toptitle, h1 {
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            font-family: "Montserrat", Helvetica, cambria, sans-serif;
+        }
+
+        .toptitle {
+            display: inline-block;
+            margin-right: 10px;
+            color: #fff;
+            font-weight: 300;
+            font-size: 16px;
+            line-height: 100%;
+        }
+
+        h1 {
+            color: #323232;
+            font-weight: 400;
+            font-size: 12px !important;
+        }
+
+        #top {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 99999;
+            padding: 15px;
+            width: 100%;
+            height: 20px;
+            background: #000;
+            color: #fff;
+            text-transform: uppercase;
+            font-family: "Open Sans", Helvetica, cambria, sans-serif;
+        }
+
+        .grid {
+            position: fixed;
+            top: 80px;
+            margin-bottom: 100px;
+            margin-left: 180px;
+            min-height: 800px;
+            text-align: justify;
+            line-height: 100%;
+        }
+
+        .grid-item {
+            margin: 15px;
+            padding: 10px 0;
+            width: 200px;
+            height: 240px;
+            background: #000;
+            color: #fff;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
+        .grid-item img {
+            position: relative;
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            transition: all 0.3s ease-out;
+        }
+
+        .grid-item:hover img {
+            box-shadow: 0 0 0 21px black, 0 0 0 22px #fff;
+            filter: grayscale(100%);
+            transform: scale(0.8);
+        }
+
+        .name {
+            margin: 15px 0;
+            letter-spacing: 2px;
+            font-weight: 700;
+            font-family: "Montserrat", Helvetica, cambria, sans-serif;
+            line-height: 100%;
+        }
+
+        .firstname {
+            font-size: 14px;
+            line-height: 100%;
+            font-weight: 700;
+        }
+
+        .surname {
+            margin-top: 2px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 100%;
+            font-weight: 800;
+        }
+
+        .info {
+            position: relative;
+            margin: 15px 0;
+            color: #ccc;
+            letter-spacing: 1px;
+            font-size: 10px;
+            font-family: "Open Sans";
+            line-height: 120%;
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            padding: 40px;
+            width: 150px;
+            height: 100%;
+            background: #fff;
+        }
+
+        .filters {
+            margin-top: 80px;
+        }
+
+        button {
+            display: block;
+            padding-left: 10px;
+            width: 100%;
+            outline: none;
+            border: none;
+            background: transparent;
+            color: #828282;
+            text-align: left;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 9px;
+            font-family: "Open Sans", Helvetica, cambria, sans-serif;
+            transition: all 0.3s ease-out;
+        }
+
+        .button.is-checked::before {
+            position: absolute;
+            margin-left: -10px;
+            content: "\f105";
+            font-family: FontAwesome;
+        }
+
+        .button:active, .button.is-checked {
+            color: #000;
+        }
+
+        .button-group {
+            margin: 20px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="top">
+        <div class="toptitle">LIBRARY</div>
+    </div>
+
+    <div class="sidebar">
+        <div class="filters">
+            <div class="button-group" data-filter-group="faceclaim">
+                <h1>FACECLAIM</h1>
+                <button class="button is-checked" data-filter="">all</button>
+                <div id="faceclaim-filters"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid">
+        <!-- Characters will be dynamically inserted here -->
+    </div>
+</body>
+</html>
