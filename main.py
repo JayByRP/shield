@@ -7,9 +7,8 @@ from pydantic import BaseModel, HttpUrl
 import uvicorn
 import asyncio
 import re
-from websockets import serve
+from websockets import serve, ConnectionClosed
 import json
-from websockets.exceptions import ConnectionClosed
 import os
 from sqlalchemy.exc import IntegrityError
 from database import Base, engine, SessionLocal, test_db_connection
@@ -191,11 +190,25 @@ async def get_characters():
 async def websocket_handler(websocket):
     try:
         websocket_connections.add(websocket)
-        await websocket.wait_closed()
+        websocket.is_alive = True  # Track if the connection is alive
+
+        async for _ in websocket:  # Keep the connection open
+            pass  # Placeholder for receiving messages if needed
     except ConnectionClosed:
         pass
     finally:
         websocket_connections.remove(websocket)
+
+async def ping_websocket_clients():
+    while True:
+        if websocket_connections:
+            for ws in list(websocket_connections):
+                if not ws.is_alive:  # Check if the connection is still alive
+                    await ws.close()
+                else:
+                    ws.is_alive = False
+                    await ws.ping()  # Send a ping to the client
+        await asyncio.sleep(30)  # Wait 30 seconds before the next ping
 
 @client.event
 async def on_ready():
@@ -233,36 +246,16 @@ async def main():
     
     # Test database connection
     if not test_db_connection():
-        print("❌ Failed to connect to database. Please check your configuration.")
+        print("❌ Failed to connect to database. Exiting...")
         return
 
-    # Create tasks for each service
-    tasks = [
-        loop.create_task(start_websocket_server()),
-        loop.create_task(start_discord_bot()),
-        loop.create_task(start_fastapi())
-    ]
-
-    try:
-        # Wait for all tasks to complete (they should run forever)
-        await asyncio.gather(*tasks)
-    except Exception as e:
-        print(f"An error occurred: {e}")
-    finally:
-        # Cancel all tasks when the main coroutine exits
-        for task in tasks:
-            task.cancel()
-        
-        # Wait for all tasks to be cancelled
-        await asyncio.gather(*tasks, return_exceptions=True)
+    # Start WebSocket server and Discord bot concurrently
+    await asyncio.gather(
+        start_websocket_server(),
+        start_discord_bot(),
+        start_fastapi(),
+        ping_websocket_clients()  # Start pinging clients
+    )
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print("\nShutting down gracefully...")
-    except Exception as e:
-        print(f"Fatal error: {e}")
-    finally:
-        # Cleanup code if needed
-        print("Application shutdown complete.")
+    asyncio.run(main())
