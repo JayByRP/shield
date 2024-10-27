@@ -1,5 +1,5 @@
 from typing import Optional
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from discord import app_commands, Intents, Client, Embed, Color
@@ -169,7 +169,11 @@ async def list_all_characters(interaction):
         print(f"Error in list_all_characters: {e}")
 
 @app.get("/")
-async def read_root():
+async def read_root(request: Request):
+    return FileResponse("public/index.html")
+
+@app.head("/")
+async def head_root(request: Request):
     return FileResponse("public/index.html")
 
 @app.get("/api/characters")
