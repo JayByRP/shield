@@ -33,7 +33,7 @@ app.add_middleware(
 )
 
 # Mount the static files directory
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory="public"), name="static")
 
 # Initialize Discord bot
 intents = Intents.default()
@@ -196,7 +196,7 @@ async def show_character(interaction, name: str):
 @tree.command(name="character_list", description="Shows the list of all characters")
 async def list_all_characters(interaction):
     try:
-        website_url = "https://shield-hzo0.onrender.com/static/index.html"  # Updated path
+        website_url = "https://shield-hzo0.onrender.com/public/index.html"  # Updated path
         await interaction.response.send_message(f"📚 View the complete character list [here]({website_url})")
     except Exception as e:
         await interaction.response.send_message("❌ An error occurred while processing your request.", ephemeral=True)
@@ -207,14 +207,14 @@ async def list_all_characters(interaction):
 @app.get("/character/{name}", response_class=HTMLResponse)
 async def serve_index(request: Request):
     try:
-        with open("static/index.html") as f:
+        with open("public/index.html") as f:
             return HTMLResponse(content=f.read())
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Index file not found")
 
 @app.head("/")
 async def head_root(request: Request):
-    return FileResponse("static/index.html")
+    return FileResponse("public/index.html")
 
 # API endpoints
 @app.get("/api/characters")
