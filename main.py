@@ -197,7 +197,7 @@ async def show_character(interaction: Interaction, name: str):
 @tree.command(name="character_list", description="Shows the list of all characters")
 async def list_all_characters(interaction):
     try:
-        website_url = "https://shield-hzo0.onrender.com/public/index.html"  # Updated path
+        website_url = "https://shield-hzo0.onrender.com"  # Updated path
         await interaction.response.send_message(f"📚 View the complete character list [here]({website_url})")
     except Exception as e:
         await interaction.response.send_message("❌ An error occurred while processing your request.", ephemeral=True)
@@ -205,14 +205,15 @@ async def list_all_characters(interaction):
 
 @app.get("/", response_class=HTMLResponse)
 @app.get("/character/{name}", response_class=HTMLResponse)
-async def serve_index():
+async def serve_index(request: Request):
     try:
         return FileResponse("public/index.html")
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Index file not found")
 
+
 @app.head("/")
-async def head_root():
+async def head_root(request: Request):
     return FileResponse("public/index.html")
 
 # API endpoints
@@ -246,8 +247,6 @@ async def websocket_handler(websocket):
         websocket_connections.add(websocket)
         async for _ in websocket:  # Keep the connection open
             pass  # Placeholder for receiving messages if needed
-    except ConnectionClosed:
-        pass
     finally:
         websocket_connections.remove(websocket)
 
@@ -268,6 +267,7 @@ async def on_ready():
 
 async def start_discord_bot():
     await client.start(os.getenv("DISCORD_TOKEN"))
+
 
 async def websocket_server():
     async with serve(websocket_handler, "0.0.0.0", 6789):  # Change port as needed
