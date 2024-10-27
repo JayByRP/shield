@@ -24,6 +24,12 @@ ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="public"), name="static")
 
+@app.get("/")
+def read_root():
+    return {
+        "message": "🚀 The Librarian is up and running! 🎉"
+    }
+
 # Initialize Discord bot
 intents = Intents.default()
 intents.message_content = True
@@ -242,12 +248,6 @@ async def main():
         
         # Wait for all tasks to be cancelled
         await asyncio.gather(*tasks, return_exceptions=True)
-
-@app.get("/")
-def read_root():
-    return {
-        "message": "🚀 The Librarian is up and running! 🎉"
-    }
 
 if __name__ == "__main__":
     try:
