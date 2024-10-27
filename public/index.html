@@ -24,7 +24,9 @@
                         const surname = nameParts.slice(1).join(" ");
 
                         return `
-                            <div class="grid-item" data-faceclaim="${character.faceclaim}">
+                            <div class="grid-item" 
+                                data-gender="${character.gender || 'unknown'}"
+                                data-sexuality="${character.sexuality || 'unknown'}">
                                 <div class="name">
                                     <div class="firstname">${firstName.toUpperCase()}</div>
                                     <div class="surname">${surname.toUpperCase()}</div>
@@ -36,20 +38,13 @@
                                     `<img src="${character.image}" alt="${character.name}">`
                                 }
                                 <div class="info">
-                                    ${character.faceclaim}
+                                    ${character.gender || ''} ${character.sexuality || ''}
                                 </div>
                             </div>
                         `;
                     }).join("");
 
                     $(".grid").html(characterHTML);
-
-                    const faceclaims = [...new Set(characters.map(char => char.faceclaim))].sort();
-                    const filterHTML = faceclaims.map(faceclaim => 
-                        `<button class="button" data-filter='[data-faceclaim="${faceclaim}"]'>${faceclaim}</button>`
-                    ).join("");
-                    
-                    $("#faceclaim-filters").append(filterHTML);
 
                     var $grid = $('.grid').isotope({
                         itemSelector: '.grid-item',
@@ -254,10 +249,21 @@
             height: 100%;
             background: #fff;
             box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            overflow-y: auto;
         }
 
         .filters {
             margin-top: 80px;
+        }
+
+        .button-group {
+            margin: 20px 0;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 20px;
+        }
+
+        .button-group:last-child {
+            border-bottom: none;
         }
 
         button {
@@ -294,10 +300,6 @@
             font-family: FontAwesome;
         }
 
-        .button-group {
-            margin: 20px 0;
-        }
-
         @media (max-width: 768px) {
             .sidebar {
                 width: 160px;
@@ -322,10 +324,24 @@
 
     <div class="sidebar">
         <div class="filters">
-            <div class="button-group" data-filter-group="faceclaim">
-                <h1>FACECLAIM</h1>
-                <button class="button is-checked" data-filter="">all</button>
-                <div id="faceclaim-filters"></div>
+            <div class="button-group" data-filter-group="gender">
+                <h1>GENDER</h1>
+                <button class="button is-checked" data-filter="">ALL</button>
+                <button class="button" data-filter='[data-gender="male"]'>MALE</button>
+                <button class="button" data-filter='[data-gender="female"]'>FEMALE</button>
+                <button class="button" data-filter='[data-gender="non-binary"]'>NON-BINARY</button>
+                <button class="button" data-filter='[data-gender="other"]'>OTHER</button>
+            </div>
+
+            <div class="button-group" data-filter-group="sexuality">
+                <h1>SEXUALITY</h1>
+                <button class="button is-checked" data-filter="">ALL</button>
+                <button class="button" data-filter='[data-sexuality="heterosexual"]'>HETEROSEXUAL</button>
+                <button class="button" data-filter='[data-sexuality="homosexual"]'>HOMOSEXUAL</button>
+                <button class="button" data-filter='[data-sexuality="bisexual"]'>BISEXUAL</button>
+                <button class="button" data-filter='[data-sexuality="pansexual"]'>PANSEXUAL</button>
+                <button class="button" data-filter='[data-sexuality="asexual"]'>ASEXUAL</button>
+                <button class="button" data-filter='[data-sexuality="other"]'>OTHER</button>
             </div>
         </div>
     </div>
