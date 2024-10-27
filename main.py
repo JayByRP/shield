@@ -337,11 +337,19 @@ def upgrade_database():
     try:
         with db.begin():
             db.execute(text("""
-                ALTER TABLE dbcharacter 
+                ALTER TABLE characters 
+                ADD COLUMN gender VARCHAR(255);
+            """))
+            db.execute(text("""
+                ALTER TABLE characters 
+                ADD COLUMN sexuality VARCHAR(255);
+            """))
+            db.execute(text("""
+                ALTER TABLE characters 
                 ADD COLUMN program VARCHAR(255);
             """))
             db.execute(text("""
-                ALTER TABLE dbcharacter 
+                ALTER TABLE characters 
                 ADD COLUMN year VARCHAR(255);
             """))
         logger.info("Database upgraded successfully: program and year columns added.")
