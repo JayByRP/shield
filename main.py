@@ -102,6 +102,10 @@ async def edit_character(interaction, name: str, password: str, faceclaim: Optio
         db = SessionLocal()
         try:
             character = db.query(DBCharacter).filter(DBCharacter.name == name).first()
+            if not character:
+                await interaction.response.send_message("❌ Character not found.", ephemeral=True)
+                return
+            
             if faceclaim:
                 character.faceclaim = faceclaim
             if image:
@@ -127,6 +131,10 @@ async def delete_character(interaction, name: str, password: str):
         db = SessionLocal()
         try:
             character = db.query(DBCharacter).filter(DBCharacter.name == name).first()
+            if not character:
+                await interaction.response.send_message("❌ Character not found.", ephemeral=True)
+                return
+
             db.delete(character)
             db.commit()
             await interaction.response.send_message(f"✓ Character '{name}' has been deleted!")
@@ -223,21 +231,19 @@ async def start_websocket_server():
     async with serve(websocket_handler, "0.0.0.0", 8765):
         await asyncio.Future()  # run forever
 
-def run_discord_bot():
-    asyncio.run(client.start(os.getenv("DISCORD_TOKEN")))
+async def run_discord_bot():
+    await client.start(os.getenv("DISCORD_TOKEN"))
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
     loop = asyncio.get_event_loop()
-    
-    # Start FastAPI app and websocket server
+
+    # Start the FastAPI app and websocket server
     loop.create_task(start_websocket_server())
-    
-    # Start Discord bot in a separate thread
-    import threading
-    discord_thread = threading.Thread(target=run_discord_bot)
-    discord_thread.start()
-    
+
+    # Start Discord bot in a separate task
+    loop.create_task(run_discord_bot())
+
     # Run the FastAPI app in the event loop
     uvicorn.run(app, host="0.0.0.0", port=8000)
