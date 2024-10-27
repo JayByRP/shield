@@ -211,7 +211,11 @@ async def start_websocket_server():
         await asyncio.Future()  # run forever
 
 async def start_discord_bot():
-    await client.start(os.getenv('DISCORD_TOKEN'))
+    try:
+        print("🔗 Connecting to Discord...")
+        await client.start(os.getenv('DISCORD_TOKEN'))
+    except Exception as e:
+        print(f"❌ Discord bot failed to connect: {e}")
 
 async def start_fastapi():
     config = uvicorn.Config(
