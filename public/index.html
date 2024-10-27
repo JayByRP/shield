@@ -28,8 +28,7 @@
                                 </div>
                                 <img src="${character.image}" alt="${character.name}">
                                 <div class="info">
-                                    ${character.faceclaim}<br>
-                                    ${character.bio ? `<a href="${character.bio}" target="_blank"><i class="fa fa-file-text"></i></a>` : ''}
+                                    ${character.bio ? `<a href="${character.bio}" target="_blank">${character.faceclaim}</a>` : character.faceclaim}
                                 </div>
                             </div>
                         `;
@@ -234,15 +233,13 @@
         }
 
         .info a {
-            color: #fff;
-            margin-left: 8px;
-            font-size: 12px;
-            opacity: 0.7;
-            transition: opacity 0.3s ease;
+            color: #ccc;
+            text-decoration: none;
+            transition: color 0.3s ease;
         }
 
         .info a:hover {
-            opacity: 1;
+            color: #fff;
         }
 
         .sidebar {
