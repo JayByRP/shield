@@ -65,7 +65,7 @@ async def broadcast_message(message: dict):
     await asyncio.gather(*[ws.send(websocket_message) for ws in websocket_connections])
 
 # Discord bot commands
-@tree.command(name="create_character", description="Creates a new character profile")
+@tree.command(name="Create Character", description="Creates a new character profile")
 async def create_character(interaction, name: str, faceclaim: str, image: str, bio: str, password: str):
     try:
         if not is_valid_image_url(image):
@@ -87,7 +87,7 @@ async def create_character(interaction, name: str, faceclaim: str, image: str, b
         await interaction.response.send_message("❌ An error occurred while processing your request.", ephemeral=True)
         logging.error(f"Error in create_character: {e}")
 
-@tree.command(name="edit_character", description="Edits an existing character")
+@tree.command(name="Edit Character", description="Edits an existing character")
 async def edit_character(interaction, name: str, password: str, faceclaim: Optional[str] = None, image: Optional[str] = None, bio: Optional[str] = None):
     try:
         if not verify_character(name, password):
@@ -120,7 +120,7 @@ async def edit_character(interaction, name: str, password: str, faceclaim: Optio
         await interaction.response.send_message("❌ An error occurred while processing your request.", ephemeral=True)
         logging.error(f"Error in edit_character: {e}")
 
-@tree.command(name="delete_character", description="Deletes a character")
+@tree.command(name="Delete Character", description="Deletes a character")
 async def delete_character(interaction, name: str, password: str):
     try:
         if not verify_character(name, password):
@@ -144,16 +144,25 @@ async def delete_character(interaction, name: str, password: str):
         await interaction.response.send_message("❌ An error occurred while processing your request.", ephemeral=True)
         logging.error(f"Error in delete_character: {e}")
 
-@tree.command(name="show_character", description="Shows a character's profile")
+@tree.command(name="Show Character", description="Shows a character's profile")
 async def show_character(interaction, name: str):
     try:
         db = SessionLocal()
         try:
-            character = db.query(DBCharacter).filter(DBCharacter.name == name).first()
-            if not character:
+            # Fetch characters that start with the given prefix
+            characters = db.query(DBCharacter).filter(DBCharacter.name.ilike(f"{name}%")).all()
+            if not characters:
                 await interaction.response.send_message("❌ Character not found.", ephemeral=True)
                 return
+            
+            # Limit suggestions to a maximum of 5 characters
+            suggestions = [c.name for c in characters][:5]
+            if len(suggestions) > 1:
+                suggestions_list = ", ".join(suggestions)
+                await interaction.response.send_message(f"⚠️ Multiple characters found: {suggestions_list}. Please specify.")
+                return
 
+            character = characters[0]
             embed = Embed(
                 title=character.name.upper(),
                 description=f"[Character Sheet]({character.bio})" if character.bio.startswith('http') else "N/A",
@@ -168,7 +177,7 @@ async def show_character(interaction, name: str):
         await interaction.response.send_message("❌ An error occurred while processing your request.", ephemeral=True)
         logging.error(f"Error in show_character: {e}")
 
-@tree.command(name="list_all_characters", description="Shows the list of all characters")
+@tree.command(name="List All Characters", description="Shows the list of all characters")
 async def list_all_characters(interaction):
     try:
         website_url = "https://shield-database.onrender.com/"
