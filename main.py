@@ -210,7 +210,7 @@ async def list_all_characters(interaction):
 
 @app.get("/", response_class=HTMLResponse)
 async def read_index():
-    return StaticFiles(directory="public").get_file_response("index.html")
+    return HTMLResponse(status_code=302, headers={"Location": "/public/index.html"})
 
 # API endpoints 
 @app.get("/api/characters")
