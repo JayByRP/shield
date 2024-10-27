@@ -105,7 +105,17 @@ async def create_character(interaction, name: str, faceclaim: str, image: str, b
         await interaction.response.send_message("❌ An error occurred while processing your request.", ephemeral=True)
         logging.error(f"Error in create_character: {e}")
 
+# Autocomplete function for character names
+async def character_name_autocomplete(interaction: Interaction, current: str):
+    db = SessionLocal()
+    try:
+        characters = db.query(DBCharacter).filter(DBCharacter.name.ilike(f"{current}%")).all()
+        return [Choice(name=character.name, value=character.name) for character in characters[:5]]
+    finally:
+        db.close()
+
 @tree.command(name="edit_character", description="Edits an existing character")
+@app_commands.autocomplete(name=character_name_autocomplete)
 async def edit_character(interaction, name: str, password: str, faceclaim: Optional[str] = None, image: Optional[str] = None, bio: Optional[str] = None):
     try:
         if not verify_character(name, password):
@@ -139,6 +149,7 @@ async def edit_character(interaction, name: str, password: str, faceclaim: Optio
         logging.error(f"Error in edit_character: {e}")
 
 @tree.command(name="delete_character", description="Deletes a character")
+@app_commands.autocomplete(name=character_name_autocomplete)
 async def delete_character(interaction, name: str, password: str):
     try:
         if not verify_character(name, password):
@@ -161,15 +172,6 @@ async def delete_character(interaction, name: str, password: str):
     except Exception as e:
         await interaction.response.send_message("❌ An error occurred while processing your request.", ephemeral=True)
         logging.error(f"Error in delete_character: {e}")
-
-# Autocomplete function for character names
-async def character_name_autocomplete(interaction: Interaction, current: str):
-    db = SessionLocal()
-    try:
-        characters = db.query(DBCharacter).filter(DBCharacter.name.ilike(f"{current}%")).all()
-        return [Choice(name=character.name, value=character.name) for character in characters[:5]]
-    finally:
-        db.close()
 
 @tree.command(name="show_character", description="Shows a character's profile")
 @app_commands.autocomplete(name=character_name_autocomplete)
@@ -204,17 +206,19 @@ async def list_all_characters(interaction):
         await interaction.response.send_message("❌ An error occurred while processing your request.", ephemeral=True)
         logging.error(f"Error in list_all_characters: {e}")
 
+
+# Serve index.html for root and character paths
+
 @app.get("/", response_class=HTMLResponse)
 @app.get("/character/{name}", response_class=HTMLResponse)
-async def serve_index(request: Request):
+async def serve_index():
     try:
         return FileResponse("public/index.html")
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Index file not found")
 
-
 @app.head("/")
-async def head_root(request: Request):
+async def head_root():
     return FileResponse("public/index.html")
 
 # API endpoints
