@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>S.H.I.E.L.D Database</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.5.0/css/font-awesome.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700|Open+Sans:400,400italic,700,700italic,300italic,300|Inconsolata" rel="stylesheet" type="text/css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.isotope/2.2.2/isotope.pkgd.min.js"></script>
@@ -87,7 +87,9 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e0e0e0;
         }
 
         .filters-title {
@@ -99,56 +101,35 @@
         }
 
         .clear-filters {
-            font-size: 11px;
-            color: #828282;
             cursor: pointer;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #828282;
+            position: relative;
         }
 
         .clear-filters:hover {
             color: #000;
         }
 
+        .clear-filters:hover::after {
+            content: "Clear filters";
+            position: absolute;
+            right: 25px;
+            background: #323232;
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 10px;
+            white-space: nowrap;
+        }
+
         .filter-section {
             margin-bottom: 20px;
-        }
-
-        .filter-title {
-            font-family: "Montserrat", Helvetica, sans-serif;
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #323232;
-            margin-bottom: 10px;
-        }
-
-        .button {
-            display: block;
-            width: 100%;
-            text-align: left;
-            padding: 5px 0;
-            font-size: 11px;
-            color: #828282;
-            background: none;
-            border: none;
-            cursor: pointer;
-            transition: color 0.3s ease;
-        }
-
-        .button:hover {
-            color: #000;
-        }
-
-        .button.is-checked {
-            color: #000;
-            font-weight: 700;
-        }
-
-        .button.is-checked::before {
-            content: "\f105";
-            font-family: FontAwesome;
-            margin-right: 5px;
+            margin-top: 20px;
         }
 
         .grid {
@@ -157,7 +138,7 @@
             padding: 20px;
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 20px;
+            gap: 30px;
         }
 
         .grid-item {
@@ -166,11 +147,25 @@
             text-align: center;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
-        .grid-item:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        .name {
+            font-family: "Montserrat", Helvetica, sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            order: -1;
+        }
+
+        .face-claim {
+            font-size: 11px;
+            color: #828282;
+            font-style: italic;
+            margin-top: 10px;
+            text-transform: none;
         }
 
         .grid-item img {
@@ -178,25 +173,7 @@
             height: 150px;
             border-radius: 50%;
             object-fit: cover;
-            margin-bottom: 15px;
-        }
-
-        .name {
-            font-family: "Montserrat", Helvetica, sans-serif;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .firstname {
-            font-size: 14px;
-            font-weight: 700;
-            color: #323232;
-        }
-
-        .surname {
-            font-size: 12px;
-            color: #828282;
-            margin-top: 5px;
+            margin: 15px 0;
         }
     </style>
 </head>
@@ -208,7 +185,9 @@
     <div class="sidebar">
         <div class="filters-header">
             <div class="filters-title">Filters</div>
-            <div class="clear-filters">Clear All</div>
+            <div class="clear-filters">
+                <i class="fas fa-times"></i>
+            </div>
         </div>
         <div class="filter-section" data-filter-group="gender">
             <div class="filter-title">Gender</div>
@@ -252,6 +231,9 @@
                 url: "/api/characters",
                 method: "GET",
                 success: function(characters) {
+                    // Sort characters alphabetically by full name
+                    characters.sort((a, b) => a.name.localeCompare(b.name));
+
                     const characterHTML = characters.map(character => {
                         const nameParts = character.name.split(" ");
                         const firstName = nameParts[0];
@@ -263,6 +245,10 @@
                                  data-sexuality="${character.sexuality?.toLowerCase()}"
                                  data-program="${character.program?.toLowerCase()}"
                                  data-year="${character.year}">
+                                <div class="name">
+                                    <div class="firstname">${firstName}</div>
+                                    <div class="surname">${surname}</div>
+                                </div>
                                 <div class="image-container">
                                     ${character.bio ? 
                                         `<a href="${character.bio}" target="_blank">
@@ -271,10 +257,7 @@
                                         `<img src="${character.image}" alt="${character.name}">`
                                     }
                                 </div>
-                                <div class="name">
-                                    <div class="firstname">${firstName}</div>
-                                    <div class="surname">${surname}</div>
-                                </div>
+                                <div class="face-claim">${character.faceClaim}</div>
                             </div>
                         `;
                     }).join("");
@@ -283,7 +266,13 @@
 
                     var $grid = $('.grid').isotope({
                         itemSelector: '.grid-item',
-                        layoutMode: 'fitRows'
+                        layoutMode: 'fitRows',
+                        getSortData: {
+                            name: function(itemElem) {
+                                return $(itemElem).find('.firstname').text();
+                            }
+                        },
+                        sortBy: 'name'
                     });
 
                     var filters = {};
