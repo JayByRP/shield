@@ -368,26 +368,24 @@ def upgrade_database():
 
 # Ping function for both bot and database every 60 seconds
 async def ping_services():
-    while True:
+    try:
+        db = SessionLocal()
+        db.execute(text("SELECT 1"))
+        db.commit()
+        logger.info("✓ Database ping successful")
+    except Exception as e:
+        logger.error(f"❌ Database ping failed: {e}")
+    finally:
+        db.close()
+    
+    if not client.is_closed():
+        logger.info("✓ Discord bot connection active")
+    else:
+        logger.warning("❌ Discord bot connection lost. Attempting to reconnect...")
         try:
-            db = SessionLocal()
-            db.execute(text("SELECT 1"))
-            db.commit()
-            logger.info("✓ Database ping successful")
+            await start_discord_bot()
         except Exception as e:
-            logger.error(f"❌ Database ping failed: {e}")
-        finally:
-            db.close()
-        
-        if not client.is_closed():
-            logger.info("✓ Discord bot connection active")
-        else:
-            logger.warning("❌ Discord bot connection lost. Attempting to reconnect...")
-            try:
-                await start_discord_bot()
-            except Exception as e:
-                logger.error(f"❌ Failed to reconnect Discord bot: {e}")
-        await asyncio.sleep(600)
+            logger.error(f"❌ Failed to reconnect Discord bot: {e}")
 
 # Lifespan
 @app.on_event("startup")
@@ -395,7 +393,9 @@ async def startup_event():
     #upgrade_database()
     asyncio.create_task(start_discord_bot())
     asyncio.create_task(websocket_server())
-    asyncio.create_task(ping_services())
+    while True:
+        asyncio.create_task(ping_services())
+        await asyncio.sleep(600)
 
 @app.on_event("shutdown")
 async def shutdown_event():
