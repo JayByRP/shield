@@ -92,23 +92,19 @@
             border-bottom: 1px solid #e0e0e0;
         }
 
-        .filters-title {
-            font-family: "Montserrat", Helvetica, sans-serif;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            color: #323232;
-        }
-
         .clear-filters {
             cursor: pointer;
-            width: 20px;
-            height: 20px;
+            width: 24px;
+            height: 24px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: #828282;
             position: relative;
+        }
+
+        .clear-filters i {
+            font-size: 16px;
         }
 
         .clear-filters:hover {
@@ -118,7 +114,7 @@
         .clear-filters:hover::after {
             content: "Clear filters";
             position: absolute;
-            right: 25px;
+            right: 30px;
             background: #323232;
             color: #fff;
             padding: 5px 10px;
@@ -129,7 +125,43 @@
 
         .filter-section {
             margin-bottom: 20px;
-            margin-top: 20px;
+        }
+
+        .filter-title {
+            font-family: "Montserrat", Helvetica, sans-serif;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #323232;
+            margin-bottom: 10px;
+        }
+
+        .button {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 5px 0;
+            font-size: 11px;
+            color: #828282;
+            background: none;
+            border: none;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .button:hover {
+            color: #000;
+        }
+
+        .button.is-checked {
+            color: #000;
+            font-weight: 700;
+        }
+
+        .button.is-checked::before {
+            content: "\f105";
+            font-family: FontAwesome;
+            margin-right: 5px;
         }
 
         .grid {
@@ -138,7 +170,7 @@
             padding: 20px;
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 30px;
+            gap: 35px;
         }
 
         .grid-item {
@@ -152,6 +184,11 @@
             align-items: center;
         }
 
+        .grid-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
         .name {
             font-family: "Montserrat", Helvetica, sans-serif;
             text-transform: uppercase;
@@ -160,12 +197,16 @@
             order: -1;
         }
 
-        .face-claim {
-            font-size: 11px;
+        .firstname {
+            font-size: 14px;
+            font-weight: 700;
+            color: #323232;
+        }
+
+        .surname {
+            font-size: 12px;
             color: #828282;
-            font-style: italic;
-            margin-top: 10px;
-            text-transform: none;
+            margin-top: 5px;
         }
 
         .grid-item img {
@@ -173,7 +214,15 @@
             height: 150px;
             border-radius: 50%;
             object-fit: cover;
-            margin: 15px 0;
+            margin: 0 0 15px 0;
+        }
+
+        .face-claim {
+            font-size: 11px;
+            color: #828282;
+            font-style: italic;
+            margin-top: 10px;
+            text-transform: none;
         }
     </style>
 </head>
@@ -266,13 +315,7 @@
 
                     var $grid = $('.grid').isotope({
                         itemSelector: '.grid-item',
-                        layoutMode: 'fitRows',
-                        getSortData: {
-                            name: function(itemElem) {
-                                return $(itemElem).find('.firstname').text();
-                            }
-                        },
-                        sortBy: 'name'
+                        layoutMode: 'fitRows'
                     });
 
                     var filters = {};
