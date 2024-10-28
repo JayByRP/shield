@@ -1,18 +1,252 @@
 <!DOCTYPE html>
-<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SHIELD DATABASE</title>
-    <!-- External Resources -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css" />
+    <title>S.H.I.E.L.D Database</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.5.0/css/font-awesome.min.css" />
     <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700|Open+Sans:400,400italic,700,700italic,300italic,300|Inconsolata" rel="stylesheet" type="text/css" />
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.isotope/2.2.2/isotope.pkgd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.imagesloaded/4.1.4/imagesloaded.pkgd.min.js"></script>
+    <style>
+        ::-webkit-scrollbar {
+            width: 5px;
+            border: 2px solid #fff;
+            background-color: #acacac;
+        }
 
-    <script type="text/javascript">
+        ::-webkit-scrollbar-thumb {
+            border-radius: 6px;
+            background-color: #acacac;
+        }
+
+        ::-webkit-scrollbar:horizontal {
+            height: 5px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            color: #828282;
+            font-weight: 100;
+            font-size: 9px;
+            font-family: "Open Sans", calibri, Helvetica, sans-serif;
+            line-height: 100%;
+            background: #f5f5f5;
+        }
+
+        #top {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 99999;
+            width: 100%;
+            background: #000;
+            color: #fff;
+            padding: 15px 20px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .database-title {
+            font-family: "Montserrat", Helvetica, sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: #fff;
+        }
+
+        .directory-text {
+            font-family: "Open Sans", Helvetica, sans-serif;
+            font-size: 14px;
+            color: #828282;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 60px;
+            left: 0;
+            width: 220px;
+            height: calc(100vh - 60px);
+            background: #fff;
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        }
+
+        .filters-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .filters-title {
+            font-family: "Montserrat", Helvetica, sans-serif;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #323232;
+        }
+
+        .clear-filters {
+            font-size: 11px;
+            color: #828282;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .clear-filters:hover {
+            color: #000;
+        }
+
+        .filter-section {
+            margin-bottom: 20px;
+        }
+
+        .filter-title {
+            font-family: "Montserrat", Helvetica, sans-serif;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #323232;
+            margin-bottom: 10px;
+        }
+
+        .button {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 5px 0;
+            font-size: 11px;
+            color: #828282;
+            background: none;
+            border: none;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .button:hover {
+            color: #000;
+        }
+
+        .button.is-checked {
+            color: #000;
+            font-weight: 700;
+        }
+
+        .button.is-checked::before {
+            content: "\f105";
+            font-family: FontAwesome;
+            margin-right: 5px;
+        }
+
+        .grid {
+            margin-left: 220px;
+            margin-top: 60px;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .grid-item {
+            background: #fff;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .grid-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .grid-item img {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 15px;
+        }
+
+        .name {
+            font-family: "Montserrat", Helvetica, sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .firstname {
+            font-size: 14px;
+            font-weight: 700;
+            color: #323232;
+        }
+
+        .surname {
+            font-size: 12px;
+            color: #828282;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="top">
+        <div class="database-title">S.H.I.E.L.D DATABASE</div>
+        <div class="directory-text">Character Directory</div>
+    </div>
+    <div class="sidebar">
+        <div class="filters-header">
+            <div class="filters-title">Filters</div>
+            <div class="clear-filters">Clear All</div>
+        </div>
+        <div class="filter-section" data-filter-group="gender">
+            <div class="filter-title">Gender</div>
+            <button class="button is-checked" data-filter="*">Show All</button>
+            <button class="button" data-filter="[data-gender='male']">Male</button>
+            <button class="button" data-filter="[data-gender='female']">Female</button>
+            <button class="button" data-filter="[data-gender='non-binary']">Non-binary</button>
+            <button class="button" data-filter="[data-gender='other']">Other</button>
+        </div>
+        <div class="filter-section" data-filter-group="sexuality">
+            <div class="filter-title">Sexuality</div>
+            <button class="button is-checked" data-filter="*">Show All</button>
+            <button class="button" data-filter="[data-sexuality='heterosexual']">Heterosexual</button>
+            <button class="button" data-filter="[data-sexuality='homosexual']">Homosexual</button>
+            <button class="button" data-filter="[data-sexuality='bisexual']">Bisexual</button>
+            <button class="button" data-filter="[data-sexuality='pansexual']">Pansexual</button>
+            <button class="button" data-filter="[data-sexuality='asexual']">Asexual</button>
+            <button class="button" data-filter="[data-sexuality='other']">Other</button>
+        </div>
+        <div class="filter-section" data-filter-group="program">
+            <div class="filter-title">Program</div>
+            <button class="button is-checked" data-filter="*">Show All</button>
+            <button class="button" data-filter="[data-program='operations']">Operations</button>
+            <button class="button" data-filter="[data-program='intelligence']">Intelligence</button>
+            <button class="button" data-filter="[data-program='sci_tech']">Sci-Tech</button>
+        </div>
+        <div class="filter-section" data-filter-group="year">
+            <div class="filter-title">Year</div>
+            <button class="button is-checked" data-filter="*">Show All</button>
+            <button class="button" data-filter="[data-year='1st Year']">1st Year</button>
+            <button class="button" data-filter="[data-year='2nd Year']">2nd Year</button>
+            <button class="button" data-filter="[data-year='3rd Year']">3rd Year</button>
+            <button class="button" data-filter="[data-year='4th Year']">4th Year</button>
+        </div>
+    </div>
+    <div class="grid"></div>
+
+    <script>
         $(document).ready(function() {
             $.ajax({
                 url: "/api/characters",
@@ -25,16 +259,22 @@
 
                         return `
                             <div class="grid-item" 
-                                <div class="name">
-                                    <div class="firstname">${firstName.toUpperCase()}</div>
-                                    <div class="surname">${surname.toUpperCase()}</div>
+                                 data-gender="${character.gender?.toLowerCase()}"
+                                 data-sexuality="${character.sexuality?.toLowerCase()}"
+                                 data-program="${character.program?.toLowerCase()}"
+                                 data-year="${character.year}">
+                                <div class="image-container">
+                                    ${character.bio ? 
+                                        `<a href="${character.bio}" target="_blank">
+                                            <img src="${character.image}" alt="${character.name}">
+                                        </a>` : 
+                                        `<img src="${character.image}" alt="${character.name}">`
+                                    }
                                 </div>
-                                ${character.bio ? 
-                                    `<a href="${character.bio}" target="_blank" class="image-link">
-                                        <img src="${character.image}" alt="${character.name}">
-                                    </a>` : 
-                                    `<img src="${character.image}" alt="${character.name}">`
-                                }
+                                <div class="name">
+                                    <div class="firstname">${firstName}</div>
+                                    <div class="surname">${surname}</div>
+                                </div>
                             </div>
                         `;
                     }).join("");
@@ -43,28 +283,38 @@
 
                     var $grid = $('.grid').isotope({
                         itemSelector: '.grid-item',
-                        layoutMode: 'fitRows',
-                        sortBy: 'original-order'
+                        layoutMode: 'fitRows'
                     });
 
                     var filters = {};
 
-                    $('.filters').on('click', '.button', function() {
+                    $('.filter-section').on('click', 'button', function() {
                         var $this = $(this);
-                        var $buttonGroup = $this.parents('.button-group');
-                        var filterGroup = $buttonGroup.attr('data-filter-group');
+                        var $filterGroup = $this.parents('.filter-section');
+                        var filterGroup = $filterGroup.attr('data-filter-group');
                         filters[filterGroup] = $this.attr('data-filter');
                         var filterValue = concatValues(filters);
                         $grid.isotope({ filter: filterValue });
+
+                        // Update active state
+                        $filterGroup.find('.is-checked').removeClass('is-checked');
+                        $this.addClass('is-checked');
                     });
 
-                    $('.button-group').each(function(i, buttonGroup) {
-                        var $buttonGroup = $(buttonGroup);
-                        $buttonGroup.on('click', 'button', function() {
-                            $buttonGroup.find('.is-checked').removeClass('is-checked');
-                            $(this).addClass('is-checked');
-                        });
+                    $('.clear-filters').on('click', function() {
+                        filters = {};
+                        $grid.isotope({ filter: '*' });
+                        $('.button.is-checked').removeClass('is-checked');
+                        $('.filter-section button[data-filter="*"]').addClass('is-checked');
                     });
+
+                    function concatValues(obj) {
+                        var value = '';
+                        for (var prop in obj) {
+                            value += obj[prop];
+                        }
+                        return value || '*';
+                    }
 
                     $grid.imagesLoaded().progress(function() {
                         $grid.isotope('layout');
@@ -75,261 +325,7 @@
                     $(".grid").html("<p class='error-message'>Error loading characters. Please try again later.</p>");
                 }
             });
-
-            function concatValues(obj) {
-                var value = '';
-                for (var prop in obj) {
-                    value += obj[prop];
-                }
-                return value;
-            }
         });
     </script>
-
-<style type="text/css">
-    /* Scrollbar and basic styles remain the same */
-    ::-webkit-scrollbar {
-        width: 5px;
-        border: 2px solid #fff;
-        background-color: #acacac;
-    }
-
-    ::-webkit-scrollbar-thumb {
-        border-radius: 6px;
-        background-color: #acacac;
-    }
-
-    ::-webkit-scrollbar:horizontal {
-        height: 5px;
-    }
-
-    ::selection {
-        background: gray;
-        color: #fff;
-    }
-
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-    }
-
-    body {
-        color: #828282;
-        font-weight: 100;
-        font-size: 9px;
-        font-family: "open sans", calibri, Helvetica, sans-serif;
-        line-height: 100%;
-        background: #f5f5f5;
-    }
-
-    /* Updated header styles */
-    .toptitle {
-        text-transform: uppercase;
-        letter-spacing: 3px;
-        font-family: "Montserrat", Helvetica, sans-serif;
-        display: inline-block;
-        margin-right: 10px;
-        color: #fff;
-        font-weight: 300;
-        font-size: 16px;
-        line-height: 100%;
-    }
-
-    h1 {
-        text-transform: uppercase;
-        letter-spacing: 3px;
-        font-family: "Montserrat", Helvetica, sans-serif;
-        color: #323232;
-        font-weight: 400;
-        font-size: 12px !important;
-        margin-bottom: 5px;
-    }
-
-    h3 {
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        margin-bottom: 10px;
-        color: #323232;
-    }
-
-    /* Updated top bar */
-    #top {
-        position: fixed;
-        top: 0;
-        left: 0;
-        z-index: 99999;
-        padding: 15px;
-        width: 100%;
-        height: 50px;
-        background: #000;
-        color: #fff;
-        text-transform: uppercase;
-        font-family: "Open Sans", Helvetica, sans-serif;
-    }
-
-    /* Updated grid layout */
-    .grid {
-        position: relative;
-        margin: 80px 0 0 220px;
-        padding: 20px;
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-        gap: 20px;
-    }
-
-    /* Updated grid item styles */
-    .grid-item {
-        margin: 0;
-        padding: 10px;
-        background: #000;
-        color: #fff;
-        text-align: center;
-        text-transform: uppercase;
-        transition: all 0.3s ease-out;
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
-
-    .grid-item:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-    }
-
-    .grid-item img {
-        width: 120px;
-        height: 120px;
-        border-radius: 50%;
-        transition: all 0.3s ease-out;
-        object-fit: cover;
-    }
-
-    /* Updated sidebar styles */
-    .sidebar {
-        position: fixed;
-        top: 0;
-        left: 0;
-        padding: 20px;
-        width: 200px;
-        height: 100%;
-        background: #fff;
-        box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-        overflow-y: auto;
-    }
-
-    .filters {
-        margin-top: 60px;
-    }
-
-    /* Updated button group styles */
-    .button-group {
-        margin: 5px 0;
-        border-bottom: 1px solid #eee;
-        padding-bottom: 10px;
-    }
-
-    .button-group:last-child {
-        border-bottom: none;
-    }
-
-    /* Updated button styles */
-    button {
-        display: block;
-        padding: 4px 8px;
-        width: 100%;
-        outline: none;
-        border: none;
-        background: transparent;
-        color: #828282;
-        text-align: left;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        font-size: 9px;
-        font-family: "Open Sans", Helvetica, sans-serif;
-        transition: all 0.3s ease-out;
-        cursor: pointer;
-    }
-
-    button:hover {
-        color: #000;
-        background: #f5f5f5;
-    }
-
-    .button.is-checked {
-        color: #000;
-        font-weight: 700;
-    }
-
-    .button.is-checked::before {
-        position: absolute;
-        margin-left: -10px;
-        content: "\f105";
-        font-family: FontAwesome;
-    }
-
-    /* Name styles */
-    .name {
-        margin: 10px 0;
-        letter-spacing: 2px;
-        font-family: "Montserrat", Helvetica, sans-serif;
-        line-height: 1.2;
-    }
-
-    .firstname {
-        font-size: 12px;
-        font-weight: 700;
-    }
-
-    .surname {
-        margin-top: 2px;
-        font-size: 12px;
-        color: rgba(255, 255, 255, 0.9);
-        font-weight: 400;
-    }
-</style>
-</head>
-<body>
-<div id="top">
-    <span class="toptitle">SHIELD DATABASE</span>
-    <h1>Character Collection</h1>
-</div>
-<div class="sidebar">
-    <div class="filters">
-        <h3>Filters</h3>
-        <div class="button-group" data-filter-group="gender">
-            <button class="button is-checked" data-filter="*">Show All</button>
-            <button class="button" data-filter="[data-gender='male']">Male</button>
-            <button class="button" data-filter="[data-gender='female']">Female</button>
-            <button class="button" data-filter="[data-gender='non-binary']">Non-binary</button>
-            <button class="button" data-filter="[data-gender='other']">Other</button>
-        </div>
-        <div class="button-group" data-filter-group="sexuality">
-            <button class="button is-checked" data-filter="*">Show All</button>
-            <button class="button" data-filter="[data-sexuality='heterosexual']">Heterosexual</button>
-            <button class="button" data-filter="[data-sexuality='homosexual']">Homosexual</button>
-            <button class="button" data-filter="[data-sexuality='bisexual']">Bisexual</button>
-            <button class="button" data-filter="[data-sexuality='pansexual']">Pansexual</button>
-            <button class="button" data-filter="[data-sexuality='asexual']">Asexual</button>
-            <button class="button" data-filter="[data-sexuality='other']">Other</button>
-        </div>
-        <div class="button-group" data-filter-group="program">
-            <button class="button is-checked" data-filter="*">Show All</button>
-            <button class="button" data-filter="[data-program='operations']">Operations</button>
-            <button class="button" data-filter="[data-program='intelligence']">Intelligence</button>
-            <button class="button" data-filter="[data-program='sci_tech']">Sci-Tech</button>
-        </div>
-        <div class="button-group" data-filter-group="year">
-            <button class="button is-checked" data-filter="*">Show All</button>
-            <button class="button" data-filter="[data-year='1st Year']">1st Year</button>
-            <button class="button" data-filter="[data-year='2nd Year']">2nd Year</button>
-            <button class="button" data-filter="[data-year='3rd Year']">3rd Year</button>
-            <button class="button" data-filter="[data-year='4th Year']">4th Year</button>
-        </div>
-    </div>
-</div>
-<div class="grid"></div>
 </body>
 </html>
