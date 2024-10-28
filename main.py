@@ -309,7 +309,6 @@ async def health_check():
     return {"status": "healthy"}
 
 # WebSocket endpoint
-@app.websocket("/ws")
 async def websocket_handler(websocket):
     try:
         websocket_connections.add(websocket)
