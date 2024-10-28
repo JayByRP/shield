@@ -318,16 +318,6 @@ async def websocket_handler(websocket):
     finally:
         websocket_connections.remove(websocket)
 
-async def ping_websocket_clients():
-    while True:
-        if websocket_connections:
-            for ws in list(websocket_connections):
-                try:
-                    await ws.ping()
-                except Exception:
-                    websocket_connections.remove(ws)
-        await asyncio.sleep(30)
-
 @client.event
 async def on_ready():
     logging.info(f'Logged in as {client.user}')
@@ -335,10 +325,6 @@ async def on_ready():
 
 async def start_discord_bot():
     await client.start(os.getenv("DISCORD_TOKEN"))
-
-async def websocket_server():
-    async with serve(websocket_handler, "0.0.0.0", 6789):
-        await ping_websocket_clients()
 
 def upgrade_database():
     db = SessionLocal()
@@ -368,34 +354,33 @@ def upgrade_database():
 
 # Ping function for both bot and database every 60 seconds
 async def ping_services():
-    try:
-        db = SessionLocal()
-        db.execute(text("SELECT 1"))
-        db.commit()
-        logger.info("✓ Database ping successful")
-    except Exception as e:
-        logger.error(f"❌ Database ping failed: {e}")
-    finally:
-        db.close()
-    
-    if not client.is_closed():
-        logger.info("✓ Discord bot connection active")
-    else:
-        logger.warning("❌ Discord bot connection lost. Attempting to reconnect...")
+    while True:
         try:
-            await start_discord_bot()
+            db = SessionLocal()
+            db.execute(text("SELECT 1"))
+            db.commit()
+            logger.info("✓ Database ping successful")
         except Exception as e:
-            logger.error(f"❌ Failed to reconnect Discord bot: {e}")
+            logger.error(f"❌ Database ping failed: {e}")
+        finally:
+            db.close()
+        
+        if not client.is_closed():
+            logger.info("✓ Discord bot connection active")
+        else:
+            logger.warning("❌ Discord bot connection lost. Attempting to reconnect...")
+            try:
+                await start_discord_bot()
+            except Exception as e:
+                logger.error(f"❌ Failed to reconnect Discord bot: {e}")
+        await asyncio.sleep(60)
 
 # Lifespan
 @app.on_event("startup")
 async def startup_event():
     #upgrade_database()
     asyncio.create_task(start_discord_bot())
-    asyncio.create_task(websocket_server())
-    while True:
-        asyncio.create_task(ping_services())
-        await asyncio.sleep(60)
+    asyncio.create_task(ping_services())
 
 @app.on_event("shutdown")
 async def shutdown_event():
