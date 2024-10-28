@@ -300,111 +300,112 @@
     </div>
     <div class="grid"></div>
 
-    $(document).ready(function() {
-        $.ajax({
-            url: "/api/characters",
-            method: "GET",
-            success: function(characters) {
-                // Sort characters alphabetically by full name
-                characters.sort((a, b) => a.name.localeCompare(b.name));
-    
-                const characterHTML = characters.map(character => {
-                    const nameParts = character.name.split(" ");
-                    const firstName = nameParts[0];
-                    const surname = nameParts.slice(1).join(" ");
-    
-                    return `
-                        <div class="grid-item" 
-                             data-gender="${character.gender?.toLowerCase()}"
-                             data-sexuality="${character.sexuality?.toLowerCase()}"
-                             data-program="${character.program?.toLowerCase()}"
-                             data-year="${character.year}">
-                            <div class="name">
-                                <div class="firstname">${firstName}</div>
-                                <div class="surname">${surname}</div>
+    <script>
+        $(document).ready(function() {
+            $.ajax({
+                url: "/api/characters",
+                method: "GET",
+                success: function(characters) {
+                    // Sort characters alphabetically by full name
+                    characters.sort((a, b) => a.name.localeCompare(b.name));
+
+                    const characterHTML = characters.map(character => {
+                        const nameParts = character.name.split(" ");
+                        const firstName = nameParts[0];
+                        const surname = nameParts.slice(1).join(" ");
+
+                        return `
+                            <div class="grid-item" 
+                                data-gender="${character.gender?.toLowerCase()}"
+                                data-sexuality="${character.sexuality?.toLowerCase()}"
+                                data-program="${character.program?.toLowerCase()}"
+                                data-year="${character.year}">
+                                <div class="name">
+                                    <div class="firstname">${firstName}</div>
+                                    <div class="surname">${surname}</div>
+                                </div>
+                                <div class="image-container">
+                                    ${character.bio ? 
+                                        `<a href="${character.bio}" target="_blank">
+                                            <img src="${character.image}" alt="${character.name}">
+                                        </a>` : 
+                                        `<img src="${character.image}" alt="${character.name}">`
+                                    }
+                                </div>
+                                <div class="face-claim">${character.faceclaim}</div>
                             </div>
-                            <div class="image-container">
-                                ${character.bio ? 
-                                    `<a href="${character.bio}" target="_blank">
-                                        <img src="${character.image}" alt="${character.name}">
-                                    </a>` : 
-                                    `<img src="${character.image}" alt="${character.name}">`
-                                }
-                            </div>
-                            <div class="face-claim">${character.faceclaim}</div>
-                        </div>
-                    `;
-                }).join("");
-    
-                $(".grid").html(characterHTML);
-    
-                // Initialize Isotope
-                var $grid = $('.grid').isotope({
-                    itemSelector: '.grid-item',
-                    layoutMode: 'fitRows',
-                    transitionDuration: '0.4s',
-                    stagger: 30,
-                    fitRows: {
-                        gutter: 10,
-                        equalheight: true
-                    }
-                });
-    
-                // Store current filters
-                var filters = {};
-    
-                // Handle filter button clicks
-                $('.filter-section').on('click', 'button', function() {
-                    var $this = $(this);
-                    var $filterGroup = $this.parents('.filter-section');
-                    var filterGroup = $filterGroup.attr('data-filter-group');
-                    var filterValue = $this.attr('data-filter');
-                    
-                    // For "Show All", remove this filter group from the filters object
-                    if (filterValue === '*') {
-                        delete filters[filterGroup];
-                    } else {
-                        filters[filterGroup] = filterValue;
-                    }
-                    
-                    // Combine all filters
-                    var combinedFilter = '';
-                    for (var prop in filters) {
-                        combinedFilter += filters[prop];
-                    }
-                    
-                    // If no filters are active, show all
-                    if (combinedFilter === '') {
-                        combinedFilter = '*';
-                    }
-    
-                    // Update active filter buttons
-                    $filterGroup.find('.is-checked').removeClass('is-checked');
-                    $this.addClass('is-checked');
-                    
-                    // Apply filter
-                    $grid.isotope({ filter: combinedFilter });
-                });
-    
-                // Handle clear filters
-                $('.clear-filters').on('click', function() {
-                    filters = {};
-                    $('.button.is-checked').removeClass('is-checked');
-                    $('.filter-section button[data-filter="*"]').addClass('is-checked');
-                    $grid.isotope({ filter: '*' });
-                });
-    
-                // Layout Isotope after images have loaded
-                $grid.imagesLoaded().progress(function() {
-                    $grid.isotope('layout');
-                });
-            },
-            error: function(xhr, status, error) {
-                console.error("Error fetching characters:", error);
-                $(".grid").html("<p class='error-message'>Error loading characters. Please try again later.</p>");
-            }
+                        `;
+                    }).join("");
+
+                    $(".grid").html(characterHTML);
+
+                    // Initialize Isotope
+                    var $grid = $('.grid').isotope({
+                        itemSelector: '.grid-item',
+                        layoutMode: 'fitRows',
+                        transitionDuration: '0.4s',
+                        stagger: 30,
+                        fitRows: {
+                            gutter: 10,
+                            equalheight: true
+                        }
+                    });
+
+                    // Store current filters
+                    var filters = {};
+
+                    // Handle filter button clicks
+                    $('.filter-section').on('click', 'button', function() {
+                        var $this = $(this);
+                        var $filterGroup = $this.parents('.filter-section');
+                        var filterGroup = $filterGroup.attr('data-filter-group');
+                        var filterValue = $this.attr('data-filter');
+                        
+                        // For "Show All", remove this filter group from the filters object
+                        if (filterValue === '*') {
+                            delete filters[filterGroup];
+                        } else {
+                            filters[filterGroup] = filterValue;
+                        }
+                        
+                        // Combine all filters
+                        var combinedFilter = '';
+                        for (var prop in filters) {
+                            combinedFilter += filters[prop];
+                        }
+                        
+                        // If no filters are active, show all
+                        if (combinedFilter === '') {
+                            combinedFilter = '*';
+                        }
+
+                        // Update active filter buttons
+                        $filterGroup.find('.is-checked').removeClass('is-checked');
+                        $this.addClass('is-checked');
+                        
+                        // Apply filter
+                        $grid.isotope({ filter: combinedFilter });
+                    });
+
+                    // Handle clear filters
+                    $('.clear-filters').on('click', function() {
+                        filters = {};
+                        $('.button.is-checked').removeClass('is-checked');
+                        $('.filter-section button[data-filter="*"]').addClass('is-checked');
+                        $grid.isotope({ filter: '*' });
+                    });
+
+                    // Layout Isotope after images have loaded
+                    $grid.imagesLoaded().progress(function() {
+                        $grid.isotope('layout');
+                    });
+                },
+                error: function(xhr, status, error) {
+                    console.error("Error fetching characters:", error);
+                    $(".grid").html("<p class='error-message'>Error loading characters. Please try again later.</p>");
+                }
+            });
         });
-    });
     </script>
 </body>
 </html>
