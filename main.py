@@ -2,22 +2,21 @@ import os
 import asyncio
 import logging
 from typing import Optional
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from discord import app_commands, Intents, Client, Embed, Color, Interaction
 from discord.app_commands import Choice
 from pydantic import BaseModel, HttpUrl
 from websockets import serve
-from sqlalchemy import text
+from sqlalchemy import text, func
 from sqlalchemy.exc import IntegrityError
 from database import Base, engine, SessionLocal
 from models import DBCharacter, GenderEnum, SexualityEnum, YearEnum, ProgramEnum
 from dotenv import load_dotenv
 import json
 import re
-import enum
 
 # Load environment variables
 load_dotenv()
@@ -46,6 +45,10 @@ class Character(BaseModel):
     image: HttpUrl
     bio: str
     password: str
+    gender: GenderEnum
+    sexuality: SexualityEnum
+    program: ProgramEnum
+    year: YearEnum
 
 # Helper functions
 def verify_character(name: str, password: str) -> bool:
@@ -97,10 +100,10 @@ async def create_character(
     image: str, 
     bio: str, 
     password: str, 
-    gender: str, 
-    sexuality: str, 
-    program: str,
-    year: str
+    gender: GenderEnum, 
+    sexuality: SexualityEnum, 
+    program: ProgramEnum,
+    year: YearEnum
 ):
     try:
         if not is_valid_image_url(image):
@@ -151,10 +154,10 @@ async def edit_character(
     faceclaim: Optional[str] = None, 
     image: Optional[str] = None, 
     bio: Optional[str] = None, 
-    gender: Optional[str] = None, 
-    sexuality: Optional[str] = None,
-    program: Optional[str] = None,
-    year: Optional[str] = None
+    gender: Optional[GenderEnum] = None, 
+    sexuality: Optional[SexualityEnum] = None,
+    program: Optional[ProgramEnum] = None,
+    year: Optional[YearEnum] = None
 ):
     try:
         if not verify_character(name, password):
@@ -301,7 +304,8 @@ async def get_characters():
 async def health_check():
     return {"status": "healthy"}
 
-# WebSocket handling
+# WebSocket endpoint
+@app.websocket("/ws")
 async def websocket_handler(websocket):
     try:
         websocket_connections.add(websocket)
@@ -358,12 +362,36 @@ def upgrade_database():
     finally:
         db.close()
 
+# Ping function for both bot and database every 60 seconds
+async def ping_services():
+    while True:
+        try:
+            db = SessionLocal()
+            db.execute(text("SELECT 1"))
+            db.commit()
+            logger.info("✓ Database ping successful")
+        except Exception as e:
+            logger.error(f"❌ Database ping failed: {e}")
+        finally:
+            db.close()
+        
+        if not client.is_closed():
+            logger.info("✓ Discord bot connection active")
+        else:
+            logger.warning("❌ Discord bot connection lost. Attempting to reconnect...")
+            try:
+                await start_discord_bot()
+            except Exception as e:
+                logger.error(f"❌ Failed to reconnect Discord bot: {e}")
+        await asyncio.sleep(60)
+
 # Lifespan
 @app.on_event("startup")
 async def startup_event():
-    upgrade_database()
+    #upgrade_database()
     asyncio.create_task(start_discord_bot())
     asyncio.create_task(websocket_server())
+    asyncio.create_task(ping_services())
 
 @app.on_event("shutdown")
 async def shutdown_event():

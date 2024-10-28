@@ -6,8 +6,7 @@ import enum
 class ProgramEnum(enum.Enum):
     operations = "Operations"
     intelligence = "Intelligence"
-    technology = "Technology"
-    science = "Science"
+    sci-tech = "Sci-Tech"
 
 # Define Year Enum
 class YearEnum(enum.Enum):
@@ -18,19 +17,19 @@ class YearEnum(enum.Enum):
 
 # Define Gender Enum
 class GenderEnum(enum.Enum):
-    male = "male"
-    female = "female"
-    non_binary = "non-binary"
-    other = "other"
+    male = "Male"
+    female = "Female"
+    non_binary = "Non-binary"
+    other = "Other"
 
 # Define Sexuality Enum
 class SexualityEnum(enum.Enum):
-    heterosexual = "heterosexual"
-    homosexual = "homosexual"
-    bisexual = "bisexual"
-    pansexual = "pansexual"
-    asexual = "asexual"
-    other = "other"
+    heterosexual = "Heterosexual"
+    homosexual = "Homosexual"
+    bisexual = "Bisexual"
+    pansexual = "Pansexual"
+    asexual = "Asexual"
+    other = "Other"
 
 class DBCharacter(Base):
     __tablename__ = "characters"
