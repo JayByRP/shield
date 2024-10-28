@@ -10,7 +10,7 @@ from discord import app_commands, Intents, Client, Embed, Color, Interaction
 from discord.app_commands import Choice
 from pydantic import BaseModel, HttpUrl
 from websockets import serve
-from sqlalchemy import text, func
+from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from database import Base, engine, SessionLocal
 from models import DBCharacter, GenderEnum, SexualityEnum, YearEnum, ProgramEnum

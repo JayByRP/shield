@@ -6,7 +6,7 @@ import enum
 class ProgramEnum(enum.Enum):
     operations = "Operations"
     intelligence = "Intelligence"
-    sci-tech = "Sci-Tech"
+    sci_tech = "Sci-Tech"
 
 # Define Year Enum
 class YearEnum(enum.Enum):
