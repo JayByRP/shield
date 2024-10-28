@@ -174,11 +174,9 @@
             margin-left: 160px;
             margin-top: 60px;
             padding: 25px;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
             background: #c9c9c9;
             min-height: calc(100vh - 60px);
+            display: block;
         }
 
         .grid:after {
@@ -196,8 +194,9 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin: 0px;
-            float: none;
+            width: 200px;
+            margin: 12.5px;
+            float: left;
         }
 
         .grid-item:hover {
@@ -347,7 +346,7 @@
                         stagger: 30,
                         fitRows: {
                             gutter: 25,
-                            horizontalAlignment: true
+                            equalheight: true
                         }
                     });
 
