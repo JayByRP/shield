@@ -395,7 +395,7 @@ async def startup_event():
     asyncio.create_task(websocket_server())
     while True:
         asyncio.create_task(ping_services())
-        await asyncio.sleep(600)
+        await asyncio.sleep(10)
 
 @app.on_event("shutdown")
 async def shutdown_event():
