@@ -100,10 +100,10 @@ async def create_character(
     image: str, 
     bio: str, 
     password: str, 
-    gender: GenderEnum, 
-    sexuality: SexualityEnum, 
-    program: ProgramEnum,
-    year: YearEnum
+    gender: str, 
+    sexuality: str, 
+    program: str,
+    year: str
 ):
     try:
         if not is_valid_image_url(image):
@@ -154,10 +154,10 @@ async def edit_character(
     faceclaim: Optional[str] = None, 
     image: Optional[str] = None, 
     bio: Optional[str] = None, 
-    gender: Optional[GenderEnum] = None, 
-    sexuality: Optional[SexualityEnum] = None,
-    program: Optional[ProgramEnum] = None,
-    year: Optional[YearEnum] = None
+    gender: Optional[str] = None, 
+    sexuality: Optional[str] = None,
+    program: Optional[str] = None,
+    year: Optional[str] = None
 ):
     try:
         if not verify_character(name, password):
