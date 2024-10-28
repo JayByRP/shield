@@ -151,6 +151,7 @@ async def edit_character(
     interaction: Interaction, 
     name: str, 
     password: str, 
+    new_name: Optional[str] = None, 
     faceclaim: Optional[str] = None, 
     image: Optional[str] = None, 
     bio: Optional[str] = None, 
@@ -174,7 +175,8 @@ async def edit_character(
             if not character:
                 await interaction.response.send_message("❌ Character not found.", ephemeral=True)
                 return
-            
+            if new_name:
+                character.name = new_name
             if faceclaim:
                 character.faceclaim = faceclaim
             if image:
@@ -190,8 +192,10 @@ async def edit_character(
             if year:
                 character.year = YearEnum(year)
             db.commit()
-            await interaction.response.send_message(f"✓ Character '{name}' has been updated!")
-            await broadcast_message({'action': 'edit', 'name': name})
+            await interaction.response.send_message(f"✓ Character '{name}' has been updated to '{new_name}!")
+            await broadcast_message({'action': 'edit', 'name': name, 'new_name': new_name})
+        except IntegrityError:
+            await interaction.response.send_message(f"❌ A character named '{new_name}' already exists!", ephemeral=True)
         finally:
             db.close()
     except Exception as e:
