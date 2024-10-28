@@ -383,7 +383,7 @@ async def ping_services():
                 await start_discord_bot()
             except Exception as e:
                 logger.error(f"❌ Failed to reconnect Discord bot: {e}")
-        await asyncio.sleep(60)
+        await asyncio.sleep(600)
 
 # Lifespan
 @app.on_event("startup")
